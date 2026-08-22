@@ -334,6 +334,7 @@ if CoreGui:FindFirstChild("GMK_Menu") then CoreGui.GMK_Menu:Destroy() end
 local GMK_Menu = Instance.new("ScreenGui")
 GMK_Menu.Name = "GMK_Menu"
 GMK_Menu.Parent = CoreGui
+
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 420, 0, 280)
 MainFrame.Position = UDim2.new(0.5, -210, 0.5, -140)
@@ -341,8 +342,30 @@ MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
+MainFrame.Visible = false -- Меню скрыто на старте
 MainFrame.Parent = GMK_Menu
 Instance.new("UICorner").CornerRadius = UDim.new(0, 10) MainFrame.Parent = MainFrame
+
+-- Создание плавающей кнопки открытия меню
+local OpenBtn = Instance.new("TextButton")
+OpenBtn.Size = UDim2.new(0, 45, 0, 45)
+OpenBtn.Position = UDim2.new(0.1, 0, 0.2, 0)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+OpenBtn.Text = "G"
+OpenBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
+OpenBtn.TextSize = 18
+OpenBtn.Font = Enum.Font.SourceSansBold
+OpenBtn.Active = true
+OpenBtn.Draggable = true -- Кнопку можно таскать пальцем
+OpenBtn.Parent = GMK_Menu
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(1, 0) -- Делаем её идеально круглой
+btnCorner.Parent = OpenBtn
+
+OpenBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 35)
 Title.BackgroundTransparency = 1
