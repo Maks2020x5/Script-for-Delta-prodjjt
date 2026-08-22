@@ -28,16 +28,11 @@ local direction = part.Position - origin
 local raycastParams = RaycastParams.new()
 raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 raycastParams.FilterDescendantsInstances = {lPlr.Character, character, camera}
-raycastParams.IgnoreWater = true 
-
+raycastParams.IgnoreWater = true
 local raycastResult = game.Workspace:Raycast(origin, direction, raycastParams)
 if raycastResult then
 local hitObj = raycastResult.Instance
-if hitObj.CanCollide == false or hitObj.Transparency > 0.5 or
-string.find(string.lower(hitObj.Name), "leaf") or
-string.find(string.lower(hitObj.Name), "grass") or
-string.find(string.lower(hitObj.Name), "bush") or
-string.find(string.lower(hitObj.Name), "twig") then
+if hitObj.CanCollide == false or hitObj.Transparency > 0.5 or string.find(string.lower(hitObj.Name), "leaf") or string.find(string.lower(hitObj.Name), "grass") or string.find(string.lower(hitObj.Name), "bush") or string.find(string.lower(hitObj.Name), "twig") then
 return true
 end
 return false
@@ -46,20 +41,14 @@ return true
 end 
 
 local function isPlayerVisible(character)
-if not character or not camera then return false end
-local origin = camera.CFrame.Position 
-
+local origin = camera.CFrame.Position
 local head = character:FindFirstChild("Head", true)
 local torso = character:FindFirstChild("UpperTorso", true) or character:FindFirstChild("Torso", true)
 local hrp = character:FindFirstChild("HumanoidRootPart", true)
-
-if checkPointVisible(origin, head, character) or
-checkPointVisible(origin, torso, character) or
-checkPointVisible(origin, hrp, character) then
+if checkPointVisible(origin, head, character) or checkPointVisible(origin, torso, character) or checkPointVisible(origin, hrp, character) then
 return true
 end
 return false
-
 endlocal function getClosestTarget()
 local closestTarget = nil
 local maxMouseDistance = getgenv().fovCircleRadius
@@ -70,50 +59,45 @@ for _, model in pairs(game.Workspace:GetChildren()) do
 if model:FindFirstChild("Humanoid", true) and model:FindFirstChild("HumanoidRootPart", true) and model.Name ~= lPlr.Name then
 local humanoid = model:FindFirstChildWhichIsA("Humanoid", true)
 local hrp = model:FindFirstChild("HumanoidRootPart", true)
-    if humanoid and humanoid.Health > 0 and hrp then
-        local worldDist = (myHrp.Position - hrp.Position).Magnitude
-        if worldDist <= getgenv().aimbotMaxDist then
-            
-            local targetPart = nil
-            if getgenv().aimbotPartMode == "Head" then
-                targetPart = model:FindFirstChild("Head", true)
-            elseif getgenv().aimbotPartMode == "Torso" then
-                targetPart = model:FindFirstChild("UpperTorso", true) or model:FindFirstChild("Torso", true)
-            elseif getgenv().aimbotPartMode == "Closest" then
-                local head = model:FindFirstChild("Head", true)
-                local torso = model:FindFirstChild("UpperTorso", true) or model:FindFirstChild("Torso", true)
-                if head and torso then
-                    local mousePos = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
-                    local headPos, _ = camera:WorldToViewportPoint(head.Position)
-                    local torsoPos, _ = camera:WorldToViewportPoint(torso.Position)
-                    local distHead = (Vector2.new(headPos.X, headPos.Y) - mousePos).Magnitude
-                    local distTorso = (Vector2.new(torsoPos.X, torsoPos.Y) - mousePos).Magnitude
-                    targetPart = (distHead < distTorso) and head or torso
-                else
-                    targetPart = head or hrp
-                end
-            end
-
-            if targetPart and isPlayerVisible(model) then
-                local screenPosition, onScreen = camera:WorldToViewportPoint(targetPart.Position)
-                if onScreen then
-                    local mousePos = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
-                    local targetPos = Vector2.new(screenPosition.X, screenPosition.Y)
-                    local distanceToMouse = (targetPos - mousePos).Magnitude
-
-                    if distanceToMouse < maxMouseDistance then
-                        maxMouseDistance = distanceToMouse
-                        closestTarget = targetPart
-                    end
-                end
-            end
-        end
-    end
+if humanoid and humanoid.Health > 0 and hrp then
+local worldDist = (myHrp.Position - hrp.Position).Magnitude
+if worldDist <= getgenv().aimbotMaxDist then
+local targetPart = nil
+if getgenv().aimbotPartMode == "Head" then
+targetPart = model:FindFirstChild("Head", true)
+elseif getgenv().aimbotPartMode == "Torso" then
+targetPart = model:FindFirstChild("UpperTorso", true) or model:FindFirstChild("Torso", true)
+elseif getgenv().aimbotPartMode == "Closest" then
+local head = model:FindFirstChild("Head", true)
+local torso = model:FindFirstChild("UpperTorso", true) or model:FindFirstChild("Torso", true)
+if head and torso then
+local mousePos = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+local headPos, _ = camera:WorldToViewportPoint(head.Position)
+local torsoPos, _ = camera:WorldToViewportPoint(torso.Position)
+local distHead = (Vector2.new(headPos.X, headPos.Y) - mousePos).Magnitude
+local distTorso = (Vector2.new(torsoPos.X, torsoPos.Y) - mousePos).Magnitude
+targetPart = (distHead < distTorso) and head or torso
+else
+targetPart = head or hrp
 end
-
+end
+if targetPart and isPlayerVisible(model) then
+local screenPosition, onScreen = camera:WorldToViewportPoint(targetPart.Position)
+if onScreen then
+local mousePos = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+local targetPos = Vector2.new(screenPosition.X, screenPosition.Y)
+local distanceToMouse = (targetPos - mousePos).Magnitude
+if distanceToMouse < maxMouseDistance then
+maxMouseDistance = distanceToMouse
+closestTarget = targetPart
+end
+end
+end
+end
+end
+end
 end
 return closestTarget
-
 end 
 
 game:GetService("RunService").RenderStepped:Connect(function()
@@ -122,8 +106,7 @@ FOVCircle.Visible = getgenv().fovCircleVisible
 FOVCircle.Radius = getgenv().fovCircleRadius
 FOVCircle.Color = Color3.fromRGB(0, 255, 120)
 FOVCircle.Position = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
-end 
-
+end
 if getgenv().aimbotEnabled then
 local target = getClosestTarget()
 if target then
@@ -132,101 +115,99 @@ camera.CFrame = camera.CFrame:Lerp(targetCFrame, getgenv().aimbotSmoothness)
 end
 end
 end)local function applyESP(model)
-if not model then return end 
-
-local humanoid = model:FindFirstChildWhichIsA("Humanoid", true)
-local hrp = model:FindFirstChild("HumanoidRootPart", true)
-
-if humanoid and hrp then
+if model:FindFirstChild("Humanoid", true) and model:FindFirstChild("HumanoidRootPart", true) then
 if model.Name == lPlr.Name then return end
+local hrp = model:FindFirstChild("HumanoidRootPart", true)
 local head = model:FindFirstChild("Head", true)
-local highlight = model:FindFirstChild("MobileESP") or Instance.new("Highlight")
-if not highlight.Parent then
-    highlight.Name = "MobileESP"
-    highlight.Parent = model
-    highlight.FillTransparency = 1
-    highlight.OutlineTransparency = 0
+local highlight = model:FindFirstChild("MobileESP")
+if not highlight then
+highlight = Instance.new("Highlight")
+highlight.Name = "MobileESP"
+highlight.Parent = model
+highlight.FillTransparency = 1
+highlight.OutlineTransparency = 0
+highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
 end
-
 local bGui = hrp:FindFirstChild("TextEspGui")
 if not bGui then
-    bGui = Instance.new("BillboardGui")
-    bGui.Name = "TextEspGui"
-    bGui.AlwaysOnTop = true
-    bGui.Size = UDim2.new(0, 100, 0, 25)
-    bGui.StudsOffset = Vector3.new(0, 3, 0)
-    bGui.Parent = hrp
-    local txt = Instance.new("TextLabel")
-    txt.Size = UDim2.new(1, 0, 1, 0)
-    txt.BackgroundTransparency = 1
-    txt.TextSize = 13
-    txt.Font = Enum.Font.SourceSansBold
-    txt.Parent = bGui
-    
-    task.spawn(function()
-        while model and model.Parent and hrp and txt and bGui and highlight do
-            highlight.Enabled = getgenv().espEnabled
-            bGui.Enabled = getgenv().espEnabled
-            
-            if head and head:IsA("BasePart") then
-                pcall(function()
-                    if getgenv().hitboxEnabled then
-                        head.Size = Vector3.new(3, 3, 3)
-                        head.Transparency = 0.7
-                        head.CanCollide = false
-                    else
-                        head.Size = Vector3.new(1.2, 1.2, 1.2)
-                        head.Transparency = 0
-                        head.CanCollide = true
-                    end
-                end)
-            end
-            
-            local myHrp2 = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart", true)
-            if myHrp2 and getgenv().espEnabled then
-                local dist = math.floor((myHrp2.Position - hrp.Position).Magnitude)
-                if dist <= getgenv().maxDist then
-                    local baseText = game.Players:FindFirstChild(model.Name) and "[ИГРОК]" or "[БОТ]"
-                    if isPlayerVisible(model) then
-                        highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
-                        txt.TextColor3 = Color3.fromRGB(0, 255, 0)
-                    else
-                        highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
-                        txt.TextColor3 = Color3.fromRGB(255, 0, 0)
-                    end
-                    txt.Text = baseText .. " " .. tostring(dist)
-                    txt.Visible = true
-                    highlight.Enabled = true
-                else
-                    txt.Visible = false
-                    highlight.Enabled = false
-                end
-            else
-                txt.Visible = false
-                highlight.Enabled = false
-            end
-            task.wait(0.3)
-        end
-    end)
+bGui = Instance.new("BillboardGui")
+bGui.Name = "TextEspGui"
+bGui.AlwaysOnTop = true
+bGui.Size = UDim2.new(0, 100, 0, 25)
+bGui.StudsOffset = Vector3.new(0, 3, 0)
+bGui.Parent = hrp
+local txt = Instance.new("TextLabel")
+txt.Size = UDim2.new(1, 0, 1, 0)
+txt.BackgroundTransparency = 1
+txt.TextSize = 13
+txt.Font = Enum.Font.SourceSansBold
+txt.Parent = bGui
+if game.Players:FindFirstChild(model.Name) then
+txt.TextColor3 = Color3.fromRGB(255, 0, 0)
+txt.Text = "[ИГРОК]"
+else
+txt.TextColor3 = Color3.fromRGB(255, 255, 255)
+txt.Text = "[БОТ]"
 end
-return
-
-        endlocal nameL = string.lower(model.Name)
+task.spawn(function()
+while model and model.Parent and hrp and txt and bGui and highlight do
+highlight.Enabled = getgenv().espEnabled
+bGui.Enabled = getgenv().espEnabled
+if head and head:IsA("BasePart") then
+pcall(function()
+if hitboxEnabled then
+head.Size = Vector3.new(3, 3, 3)
+head.Transparency = 0.7
+head.CanCollide = false
+else
+head.Size = Vector3.new(1.2, 1.2, 1.2)
+head.Transparency = 0
+head.CanCollide = true
+end
+end)
+end
+local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart", true)
+if myHrp and getgenv().espEnabled then
+local dist = math.floor((myHrp.Position - hrp.Position).Magnitude)
+if dist <= getgenv().maxDist then
+local baseText = game.Players:FindFirstChild(model.Name) and "[ИГРОК]" or "[БОТ]"
+if isPlayerVisible(model) then
+highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
+txt.TextColor3 = Color3.fromRGB(0, 255, 0)
+else
+highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+txt.TextColor3 = Color3.fromRGB(255, 0, 0)
+end
+txt.Text = baseText .. " " .. tostring(dist)
+txt.Visible = true
+highlight.Enabled = true
+else
+txt.Visible = false
+highlight.Enabled = false
+end
+else
+txt.Visible = false
+highlight.Enabled = false
+end
+task.wait(0.3)
+end
+end)
+end
+end
+local nameL = string.lower(model.Name)
 local isMine = string.find(nameL, "mine") or string.find(nameL, "claymore") or string.find(nameL, "explosive") or string.find(nameL, "растяжка")
-
 if isMine then
 local triggerPart = model:IsA("BasePart") and model or model:FindFirstChildWhichIsA("BasePart")
 if not triggerPart or triggerPart:FindFirstChild("MineTextGui") then return end
 local mineHighlight = model:FindFirstChild("MineHighlight") or Instance.new("Highlight")
 if not mineHighlight.Parent then
-    mineHighlight.Name = "MineHighlight"
-    mineHighlight.FillTransparency = 0.7
-    mineHighlight.OutlineTransparency = 0
-    mineHighlight.OutlineColor = Color3.fromRGB(138, 43, 226)
-    mineHighlight.FillColor = Color3.fromRGB(138, 43, 226)
-    mineHighlight.Parent = model
+mineHighlight.Name = "MineHighlight"
+mineHighlight.FillTransparency = 0.7
+mineHighlight.OutlineTransparency = 0
+mineHighlight.OutlineColor = Color3.fromRGB(138, 43, 226)
+mineHighlight.FillColor = Color3.fromRGB(138, 43, 226)
+mineHighlight.Parent = model
 end
-
 local bGui = Instance.new("BillboardGui")
 bGui.Name = "MineTextGui"
 bGui.AlwaysOnTop = true
@@ -242,52 +223,49 @@ txt.TextSize = 12
 txt.Font = Enum.Font.SourceSansBold
 txt.Text = "⚠️ МИНА"
 txt.Parent = bGui
-Instance.new("UICorner").CornerRadius = UDim.new(0, 6) txt.Parent = txt
-
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 6)
+uiCorner.Parent = txt
 task.spawn(function()
-    while model and model.Parent and triggerPart and txt and bGui and mineHighlight do
-        bGui.Enabled = getgenv().mineEspEnabled
-        mineHighlight.Enabled = getgenv().mineEspEnabled
-        local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart", true)
-        if myHrp and getgenv().mineEspEnabled then
-            local dist = math.floor((myHrp.Position - triggerPart.Position).Magnitude)
-            if dist <= getgenv().mineMaxDist then
-                txt.Text = "⚠️ МИНА " .. tostring(dist)
-                txt.Visible = true
-                mineHighlight.Enabled = true
-            else
-                txt.Visible = false
-                mineHighlight.Enabled = false
-            end
-        else
-            txt.Visible = false
-            mineHighlight.Enabled = false
-        end
-        task.wait(0.5)
-    end
+while model and model.Parent and triggerPart and txt and bGui and mineHighlight do
+bGui.Enabled = getgenv().mineEspEnabled
+mineHighlight.Enabled = getgenv().mineEspEnabled
+local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart", true)
+if myHrp and getgenv().mineEspEnabled then
+local dist = math.floor((myHrp.Position - triggerPart.Position).Magnitude)
+if dist <= getgenv().mineMaxDist then
+txt.Text = "⚠️ МИНА " .. tostring(dist)
+txt.Visible = true
+mineHighlight.Enabled = true
+else
+txt.Visible = false
+mineHighlight.Enabled = false
+end
+else
+txt.Visible = false
+mineHighlight.Enabled = false
+end
+task.wait(0.5)
+end
 end)
 return
-
 end
-
-local isAurora = (model.Name == "AuroraBox")
-local isBig = (model.Name == "BigBox")
+local isAurora = model.Name == "AuroraBox"
+local isBig = model.Name == "BigBox"
 local isSafe = string.find(nameL, "safe") or string.find(nameL, "сейф")
 local isDroppedItem = model:IsA("Model") and model:FindFirstChild("Part") and not model:FindFirstChild("Humanoid")
-
 if isAurora or isBig or isSafe or isDroppedItem then
 local triggerPart = model:FindFirstChild("Part") or model:FindFirstChildWhichIsA("BasePart")
 if not triggerPart or triggerPart:FindFirstChild("LootTextGui") then return end
 local lootHighlight = model:FindFirstChild("LootHighlight") or Instance.new("Highlight")
 if not lootHighlight.Parent then
-    lootHighlight.Name = "LootHighlight"
-    lootHighlight.FillTransparency = 0.8
-    lootHighlight.OutlineTransparency = 0
-    lootHighlight.OutlineColor = Color3.fromRGB(255, 215, 0)
-    lootHighlight.FillColor = Color3.fromRGB(255, 215, 0)
-    lootHighlight.Parent = model
+lootHighlight.Name = "LootHighlight"
+lootHighlight.FillTransparency = 0.8
+lootHighlight.OutlineTransparency = 0
+lootHighlight.OutlineColor = Color3.fromRGB(255, 215, 0)
+lootHighlight.FillColor = Color3.fromRGB(255, 215, 0)
+lootHighlight.Parent = model
 end
-
 local bGui = Instance.new("BillboardGui")
 bGui.Name = "LootTextGui"
 bGui.AlwaysOnTop = true
@@ -301,42 +279,39 @@ txt.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 txt.TextColor3 = Color3.fromRGB(255, 215, 0)
 txt.TextSize = 11
 txt.Font = Enum.Font.SourceSansBold
-
 local displayName = "📦 ПРЕДМЕТ"
 if isAurora then displayName = "✨ АВРОРА КЕЙС"
 elseif isBig then displayName = "🎁 БОЛЬШОЙ КЕЙС"
 elseif isSafe then displayName = "🗄️ СЕЙФ" end
 txt.Text = displayName
 txt.Parent = bGui
-Instance.new("UICorner").CornerRadius = UDim.new(0, 6) txt.Parent = txt
-
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 6)
+uiCorner.Parent = txt
 task.spawn(function()
-    while model and model.Parent and triggerPart and txt and bGui and lootHighlight do
-        bGui.Enabled = getgenv().itemEspEnabled
-        lootHighlight.Enabled = getgenv().itemEspEnabled
-        local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart", true)
-        if myHrp and getgenv().itemEspEnabled then
-            local dist = math.floor((myHrp.Position - triggerPart.Position).Magnitude)
-            if dist <= getgenv().itemMaxDist then
-                txt.Text = displayName .. " " .. tostring(dist)
-                txt.Visible = true
-                lootHighlight.Enabled = true
-            else
-                txt.Visible = false
-                lootHighlight.Enabled = false
-            end
-        else
-            txt.Visible = false
-            lootHighlight.Enabled = false
-        end
-        task.wait(0.5)
-    end
-end)
-
+while model and model.Parent and triggerPart and txt and bGui and lootHighlight do
+bGui.Enabled = getgenv().itemEspEnabled
+lootHighlight.Enabled = getgenv().itemEspEnabled
+local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart", true)
+if myHrp and getgenv().itemEspEnabled then
+local dist = math.floor((myHrp.Position - triggerPart.Position).Magnitude)
+if dist <= getgenv().itemMaxDist then
+txt.Text = displayName .. " " .. tostring(dist)
+txt.Visible = true
+lootHighlight.Enabled = true
+else
+txt.Visible = false
+lootHighlight.Enabled = false
 end
-
-end 
-
+else
+txt.Visible = false
+lootHighlight.Enabled = false
+end
+task.wait(0.5)
+end
+end)
+end
+end
 workspace.ChildAdded:Connect(applyESP)
 for _, v in pairs(workspace:GetChildren()) do applyESP(v) endlocal CoreGui = game:GetService("CoreGui")
 if CoreGui:FindFirstChild("GMK_Menu") then CoreGui.GMK_Menu:Destroy() end 
@@ -393,7 +368,7 @@ AimPage.Parent = MainFrame
 local UIList1 = Instance.new("UIListLayout") UIList1.Padding = UDim.new(0,8) UIList1.Parent = EspPage
 local UIList2 = Instance.new("UIListLayout") UIList2.Padding = UDim.new(0,8) UIList2.Parent = AimPage 
 
-local function createToggle(parent, text, globalVar, callback)
+local function createToggle(parent, text, globalVar)
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(1, -10, 0, 35)
 frame.BackgroundTransparency = 1
@@ -417,9 +392,10 @@ lbl.Parent = frame
 btn.MouseButton1Click:Connect(function()
 getgenv()[globalVar] = not getgenv()[globalVar]
 btn.BackgroundColor3 = getgenv()[globalVar] and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(60, 60, 65)
-if callback then callback(getgenv()[globalVar]) end
 end)
-            endlocal function createSlider(parent, text, min, max, globalVar, callback)
+end 
+
+local function createSlider(parent, text, min, max, globalVar)
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(1, -10, 0, 45)
 frame.BackgroundTransparency = 1
@@ -455,28 +431,22 @@ local value = math.floor(min + (max - min) * percentage)
 getgenv()[globalVar] = value
 lbl.Text = "  " .. text .. ": " .. tostring(value)
 fill.Size = UDim2.new(percentage, 0, 1, 0)
-if callback then callback(value) end
 end
-
 slideBar.InputBegan:Connect(function(input)
 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-isDragging = true
-updateSlider(input)
+isDragging = true updateSlider(input)
 end
 end)
-
 game:GetService("UserInputService").InputChanged:Connect(function(input)
 if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 updateSlider(input)
 end
 end)
-
 game:GetService("UserInputService").InputEnded:Connect(function(input)
 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 isDragging = false
 end
 end)
-
 end 
 
 local EspTabBtn = Instance.new("TextButton")
