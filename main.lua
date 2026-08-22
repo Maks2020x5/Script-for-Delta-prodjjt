@@ -1,3 +1,6 @@
+local lPlr = game.Players.LocalPlayer
+local camera = game.Workspace.CurrentCamera 
+
 getgenv().espEnabled = true
 getgenv().maxDist = 2000
 getgenv().hitboxEnabled = false
@@ -13,9 +16,6 @@ getgenv().aimbotSmoothness = 0.15
 getgenv().fovCircleVisible = false
 getgenv().fovCircleRadius = 120 
 
-local lPlr = game.Players.LocalPlayer
-local camera = game.Workspace.CurrentCamera 
-
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Thickness = 1.5
 FOVCircle.Filled = false
@@ -23,7 +23,6 @@ FOVCircle.Transparency = 0.7
 FOVCircle.NumSides = 64 
 
 local function checkPointVisible(origin, part, character)
-if not part then return false end
 local direction = part.Position - origin
 local raycastParams = RaycastParams.new()
 raycastParams.FilterType = Enum.RaycastFilterType.Exclude
@@ -115,87 +114,91 @@ camera.CFrame = camera.CFrame:Lerp(targetCFrame, getgenv().aimbotSmoothness)
 end
 end
 end)local function applyESP(model)
-if model:FindFirstChild("Humanoid", true) and model:FindFirstChild("HumanoidRootPart", true) then
+if model:FindFirstChild("Humanoid") and model:FindFirstChild("HumanoidRootPart") then
 if model.Name == lPlr.Name then return end
-local hrp = model:FindFirstChild("HumanoidRootPart", true)
-local head = model:FindFirstChild("Head", true)
+local hrp = model.HumanoidRootPart
+local head = model:FindFirstChild("Head") 
+
 local highlight = model:FindFirstChild("MobileESP")
 if not highlight then
-highlight = Instance.new("Highlight")
-highlight.Name = "MobileESP"
-highlight.Parent = model
-highlight.FillTransparency = 1
-highlight.OutlineTransparency = 0
-highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+    highlight = Instance.new("Highlight")
+    highlight.Name = "MobileESP"
+    highlight.Parent = model
+    highlight.FillTransparency = 1
+    highlight.OutlineTransparency = 0
+    highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
 end
+
 local bGui = hrp:FindFirstChild("TextEspGui")
 if not bGui then
-bGui = Instance.new("BillboardGui")
-bGui.Name = "TextEspGui"
-bGui.AlwaysOnTop = true
-bGui.Size = UDim2.new(0, 100, 0, 25)
-bGui.StudsOffset = Vector3.new(0, 3, 0)
-bGui.Parent = hrp
-local txt = Instance.new("TextLabel")
-txt.Size = UDim2.new(1, 0, 1, 0)
-txt.BackgroundTransparency = 1
-txt.TextSize = 13
-txt.Font = Enum.Font.SourceSansBold
-txt.Parent = bGui
-if game.Players:FindFirstChild(model.Name) then
-txt.TextColor3 = Color3.fromRGB(255, 0, 0)
-txt.Text = "[ИГРОК]"
-else
-txt.TextColor3 = Color3.fromRGB(255, 255, 255)
-txt.Text = "[БОТ]"
+    bGui = Instance.new("BillboardGui")
+    bGui.Name = "TextEspGui"
+    bGui.AlwaysOnTop = true
+    bGui.Size = UDim2.new(0, 100, 0, 25)
+    bGui.StudsOffset = Vector3.new(0, 3, 0)
+    bGui.Parent = hrp
+    local txt = Instance.new("TextLabel")
+    txt.Size = UDim2.new(1, 0, 1, 0)
+    txt.BackgroundTransparency = 1
+    txt.TextSize = 13
+    txt.Font = Enum.Font.SourceSansBold
+    txt.Parent = bGui
+    if game.Players:FindFirstChild(model.Name) then
+        txt.TextColor3 = Color3.fromRGB(255, 0, 0)
+        txt.Text = "[ИГРОК]"
+    else
+        txt.TextColor3 = Color3.fromRGB(255, 255, 255)
+        txt.Text = "[БОТ]"
+    end
+    task.spawn(function()
+        while model and model.Parent and hrp and txt and bGui and highlight do
+            highlight.Enabled = getgenv().espEnabled
+            bGui.Enabled = getgenv().espEnabled
+            if head and head:IsA("BasePart") then
+                pcall(function()
+                    if getgenv().hitboxEnabled then
+                        head.Size = Vector3.new(3, 3, 3)
+                        head.Transparency = 0.7
+                        head.CanCollide = false
+                    else
+                        head.Size = Vector3.new(1.2, 1.2, 1.2)
+                        head.Transparency = 0
+                        head.CanCollide = true
+                    end
+                end)
+            end
+            local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
+            if myHrp and getgenv().espEnabled then
+                local dist = math.floor((myHrp.Position - hrp.Position).Magnitude)
+                if dist <= getgenv().maxDist then
+                    local baseText = game.Players:FindFirstChild(model.Name) and "[ИГРОК]" or "[БОТ]"
+                    if isPlayerVisible(model) then
+                        highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
+                        txt.TextColor3 = Color3.fromRGB(0, 255, 0)
+                    else
+                        highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+                        txt.TextColor3 = Color3.fromRGB(255, 0, 0)
+                    end
+                    txt.Text = baseText .. " " .. tostring(dist)
+                    txt.Visible = true
+                    highlight.Enabled = true
+                else
+                    txt.Visible = false
+                    highlight.Enabled = false
+                end
+            else
+                txt.Visible = false
+                highlight.Enabled = false
+            end
+            task.wait(0.3)
+        end
+    end)
 end
-task.spawn(function()
-while model and model.Parent and hrp and txt and bGui and highlight do
-highlight.Enabled = getgenv().espEnabled
-bGui.Enabled = getgenv().espEnabled
-if head and head:IsA("BasePart") then
-pcall(function()
-if hitboxEnabled then
-head.Size = Vector3.new(3, 3, 3)
-head.Transparency = 0.7
-head.CanCollide = false
-else
-head.Size = Vector3.new(1.2, 1.2, 1.2)
-head.Transparency = 0
-head.CanCollide = true
-end
-end)
-end
-local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart", true)
-if myHrp and getgenv().espEnabled then
-local dist = math.floor((myHrp.Position - hrp.Position).Magnitude)
-if dist <= getgenv().maxDist then
-local baseText = game.Players:FindFirstChild(model.Name) and "[ИГРОК]" or "[БОТ]"
-if isPlayerVisible(model) then
-highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
-txt.TextColor3 = Color3.fromRGB(0, 255, 0)
-else
-highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
-txt.TextColor3 = Color3.fromRGB(255, 0, 0)
-end
-txt.Text = baseText .. " " .. tostring(dist)
-txt.Visible = true
-highlight.Enabled = true
-else
-txt.Visible = false
-highlight.Enabled = false
-end
-else
-txt.Visible = false
-highlight.Enabled = false
-end
-task.wait(0.3)
-end
-end)
-end
+
 end
 local nameL = string.lower(model.Name)
 local isMine = string.find(nameL, "mine") or string.find(nameL, "claymore") or string.find(nameL, "explosive") or string.find(nameL, "растяжка")
+
 if isMine then
 local triggerPart = model:IsA("BasePart") and model or model:FindFirstChildWhichIsA("BasePart")
 if not triggerPart or triggerPart:FindFirstChild("MineTextGui") then return end
@@ -230,7 +233,7 @@ task.spawn(function()
 while model and model.Parent and triggerPart and txt and bGui and mineHighlight do
 bGui.Enabled = getgenv().mineEspEnabled
 mineHighlight.Enabled = getgenv().mineEspEnabled
-local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart", true)
+local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
 if myHrp and getgenv().mineEspEnabled then
 local dist = math.floor((myHrp.Position - triggerPart.Position).Magnitude)
 if dist <= getgenv().mineMaxDist then
@@ -250,6 +253,7 @@ end
 end)
 return
 end
+
 local isAurora = model.Name == "AuroraBox"
 local isBig = model.Name == "BigBox"
 local isSafe = string.find(nameL, "safe") or string.find(nameL, "сейф")
@@ -292,7 +296,7 @@ task.spawn(function()
 while model and model.Parent and triggerPart and txt and bGui and lootHighlight do
 bGui.Enabled = getgenv().itemEspEnabled
 lootHighlight.Enabled = getgenv().itemEspEnabled
-local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart", true)
+local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
 if myHrp and getgenv().itemEspEnabled then
 local dist = math.floor((myHrp.Position - triggerPart.Position).Magnitude)
 if dist <= getgenv().itemMaxDist then
@@ -311,6 +315,7 @@ task.wait(0.5)
 end
 end)
 end
+
 end
 workspace.ChildAdded:Connect(applyESP)
 for _, v in pairs(workspace:GetChildren()) do applyESP(v) endlocal CoreGui = game:GetService("CoreGui")
@@ -333,7 +338,7 @@ Instance.new("UICorner").CornerRadius = UDim.new(0, 10) MainFrame.Parent = MainF
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 35)
 Title.BackgroundTransparency = 1
-Title.Text = "  GMK GUI | DELTA PROJECT"
+Title.Text = "  GMK GUI | DELTA & XENO"
 Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.TextSize = 16
 Title.Font = Enum.Font.SourceSansBold
