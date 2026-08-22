@@ -304,7 +304,7 @@ local function applyESP(model)
         uiCorner.CornerRadius = UDim.new(0, 6)
         uiCorner.Parent = txt
         task.spawn(function()
-            while model and model.Parent and triggerPart African and txt and bGui and lootHighlight do
+            while model and model.Parent and triggerPart and txt and bGui and lootHighlight do
                 bGui.Enabled = getgenv().itemEspEnabled
                 lootHighlight.Enabled = getgenv().itemEspEnabled
                 local myHrp = lPlrObj.Character and lPlrObj.Character:FindFirstChild("HumanoidRootPart")
@@ -419,7 +419,6 @@ local function createToggle(parent, text, globalVar)
     frame.Size = UDim2.new(1, -5, 0, 30)
     frame.BackgroundTransparency = 1
     frame.Parent = parent
-    
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 40, 0, 20)
     btn.Position = UDim2.new(1, -45, 0.5, -10)
@@ -427,7 +426,6 @@ local function createToggle(parent, text, globalVar)
     btn.Text = ""
     btn.Parent = frame
     Instance.new("UICorner").CornerRadius = UDim.new(0,4) btn.Parent = btn
-    
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(1, -55, 1, 0)
     lbl.Text = text
@@ -437,7 +435,6 @@ local function createToggle(parent, text, globalVar)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.BackgroundTransparency = 1
     lbl.Parent = frame
-    
     btn.MouseButton1Click:Connect(function()
         getgenv()[globalVar] = not getgenv()[globalVar]
         btn.BackgroundColor3 = getgenv()[globalVar] and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(55, 55, 60)
@@ -449,7 +446,6 @@ local function createSlider(parent, text, min, max, globalVar)
     frame.Size = UDim2.new(1, -5, 0, 40)
     frame.BackgroundTransparency = 1
     frame.Parent = parent
-    
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(1, 0, 0, 15)
     lbl.Text = text .. ": " .. tostring(getgenv()[globalVar])
@@ -459,14 +455,12 @@ local function createSlider(parent, text, min, max, globalVar)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.BackgroundTransparency = 1
     lbl.Parent = frame
-    
     local slideBar = Instance.new("TextButton")
-    slideBar.Size = UDim2.new(1, -10, 0, 8)
-    slideBar.Position = UDim2.new(0, 5, 0, 20)
-    slideBar.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+    slideBar.Size = UDim2.new(1, -20, 0, 8)
+    slideBar.Position = UDim2.new(0, 10, 0, 20)
+    slideBar.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
     slideBar.Text = ""
     slideBar.Parent = frame
-    
     local fill = Instance.new("Frame")
     fill.Size = UDim2.new((getgenv()[globalVar] - min)/(max - min), 0, 1, 0)
     fill.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
@@ -484,7 +478,6 @@ local function createSlider(parent, text, min, max, globalVar)
         lbl.Text = text .. ": " .. tostring(value)
         fill.Size = UDim2.new(percentage, 0, 1, 0)
     end
-    
     slideBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             isDragging = true updateSlider(input)
@@ -512,7 +505,7 @@ EspTabBtn.TextSize = 13
 EspTabBtn.Parent = TabPanel
 
 local AimTabBtn = Instance.new("TextButton")
-AimTabBtn.Size = UDim2.new(1, 0, 0, 35)
+AimTabBtn.Size = UDim2.new(1, 0, 0, 40)
 AimTabBtn.Position = UDim2.new(0, 0, 0, 35)
 AimTabBtn.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 AimTabBtn.Text = "AIMBOT"
