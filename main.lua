@@ -1,6 +1,3 @@
-local lPlr = game.Players.LocalPlayer
-local camera = game.Workspace.CurrentCamera 
-
 getgenv().espEnabled = true
 getgenv().maxDist = 2000
 getgenv().hitboxEnabled = false
@@ -117,88 +114,84 @@ end)local function applyESP(model)
 if model:FindFirstChild("Humanoid") and model:FindFirstChild("HumanoidRootPart") then
 if model.Name == lPlr.Name then return end
 local hrp = model.HumanoidRootPart
-local head = model:FindFirstChild("Head") 
-
+local head = model:FindFirstChild("Head")
 local highlight = model:FindFirstChild("MobileESP")
 if not highlight then
-    highlight = Instance.new("Highlight")
-    highlight.Name = "MobileESP"
-    highlight.Parent = model
-    highlight.FillTransparency = 1
-    highlight.OutlineTransparency = 0
-    highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+highlight = Instance.new("Highlight")
+highlight.Name = "MobileESP"
+highlight.Parent = model
+highlight.FillTransparency = 1
+highlight.OutlineTransparency = 0
+highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
 end
-
 local bGui = hrp:FindFirstChild("TextEspGui")
 if not bGui then
-    bGui = Instance.new("BillboardGui")
-    bGui.Name = "TextEspGui"
-    bGui.AlwaysOnTop = true
-    bGui.Size = UDim2.new(0, 100, 0, 25)
-    bGui.StudsOffset = Vector3.new(0, 3, 0)
-    bGui.Parent = hrp
-    local txt = Instance.new("TextLabel")
-    txt.Size = UDim2.new(1, 0, 1, 0)
-    txt.BackgroundTransparency = 1
-    txt.TextSize = 13
-    txt.Font = Enum.Font.SourceSansBold
-    txt.Parent = bGui
-    if game.Players:FindFirstChild(model.Name) then
-        txt.TextColor3 = Color3.fromRGB(255, 0, 0)
-        txt.Text = "[ИГРОК]"
-    else
-        txt.TextColor3 = Color3.fromRGB(255, 255, 255)
-        txt.Text = "[БОТ]"
-    end
-    task.spawn(function()
-        while model and model.Parent and hrp and txt and bGui and highlight do
-            highlight.Enabled = getgenv().espEnabled
-            bGui.Enabled = getgenv().espEnabled
-            if head and head:IsA("BasePart") then
-                pcall(function()
-                    if getgenv().hitboxEnabled then
-                        head.Size = Vector3.new(3, 3, 3)
-                        head.Transparency = 0.7
-                        head.CanCollide = false
-                    else
-                        head.Size = Vector3.new(1.2, 1.2, 1.2)
-                        head.Transparency = 0
-                        head.CanCollide = true
-                    end
-                end)
-            end
-            local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
-            if myHrp and getgenv().espEnabled then
-                local dist = math.floor((myHrp.Position - hrp.Position).Magnitude)
-                if dist <= getgenv().maxDist then
-                    local baseText = game.Players:FindFirstChild(model.Name) and "[ИГРОК]" or "[БОТ]"
-                    if isPlayerVisible(model) then
-                        highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
-                        txt.TextColor3 = Color3.fromRGB(0, 255, 0)
-                    else
-                        highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
-                        txt.TextColor3 = Color3.fromRGB(255, 0, 0)
-                    end
-                    txt.Text = baseText .. " " .. tostring(dist)
-                    txt.Visible = true
-                    highlight.Enabled = true
-                else
-                    txt.Visible = false
-                    highlight.Enabled = false
-                end
-            else
-                txt.Visible = false
-                highlight.Enabled = false
-            end
-            task.wait(0.3)
-        end
-    end)
+bGui = Instance.new("BillboardGui")
+bGui.Name = "TextEspGui"
+bGui.AlwaysOnTop = true
+bGui.Size = UDim2.new(0, 100, 0, 25)
+bGui.StudsOffset = Vector3.new(0, 3, 0)
+bGui.Parent = hrp
+local txt = Instance.new("TextLabel")
+txt.Size = UDim2.new(1, 0, 1, 0)
+txt.BackgroundTransparency = 1
+txt.TextSize = 13
+txt.Font = Enum.Font.SourceSansBold
+txt.Parent = bGui
+if game.Players:FindFirstChild(model.Name) then
+txt.TextColor3 = Color3.fromRGB(255, 0, 0)
+txt.Text = "[ИГРОК]"
+else
+txt.TextColor3 = Color3.fromRGB(255, 255, 255)
+txt.Text = "[БОТ]"
 end
-
+task.spawn(function()
+while model and model.Parent and hrp and txt and bGui and highlight do
+highlight.Enabled = getgenv().espEnabled
+bGui.Enabled = getgenv().espEnabled
+if head and head:IsA("BasePart") then
+pcall(function()
+if hitboxEnabled then
+head.Size = Vector3.new(3, 3, 3)
+head.Transparency = 0.7
+head.CanCollide = false
+else
+head.Size = Vector3.new(1.2, 1.2, 1.2)
+head.Transparency = 0
+head.CanCollide = true
+end
+end)
+end
+local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
+if myHrp and getgenv().espEnabled then
+local dist = math.floor((myHrp.Position - hrp.Position).Magnitude)
+if dist <= getgenv().maxDist then
+local baseText = game.Players:FindFirstChild(model.Name) and "[ИГРОК]" or "[БОТ]"
+if isPlayerVisible(model) then
+highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
+txt.TextColor3 = Color3.fromRGB(0, 255, 0)
+else
+highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+txt.TextColor3 = Color3.fromRGB(255, 0, 0)
+end
+txt.Text = baseText .. " " .. tostring(dist)
+txt.Visible = true
+highlight.Enabled = true
+else
+txt.Visible = false
+highlight.Enabled = false
+end
+else
+txt.Visible = false
+highlight.Enabled = false
+end
+task.wait(0.3)
+end
+end)
+end
 end
 local nameL = string.lower(model.Name)
 local isMine = string.find(nameL, "mine") or string.find(nameL, "claymore") or string.find(nameL, "explosive") or string.find(nameL, "растяжка")
-
 if isMine then
 local triggerPart = model:IsA("BasePart") and model or model:FindFirstChildWhichIsA("BasePart")
 if not triggerPart or triggerPart:FindFirstChild("MineTextGui") then return end
@@ -253,7 +246,6 @@ end
 end)
 return
 end
-
 local isAurora = model.Name == "AuroraBox"
 local isBig = model.Name == "BigBox"
 local isSafe = string.find(nameL, "safe") or string.find(nameL, "сейф")
@@ -294,6 +286,7 @@ uiCorner.CornerRadius = UDim.new(0, 6)
 uiCorner.Parent = txt
 task.spawn(function()
 while model and model.Parent and triggerPart and txt and bGui and lootHighlight do
+getgenv().itemEspEnabled = getgenv().itemEspEnabled or true
 bGui.Enabled = getgenv().itemEspEnabled
 lootHighlight.Enabled = getgenv().itemEspEnabled
 local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
@@ -315,16 +308,13 @@ task.wait(0.5)
 end
 end)
 end
-
 end
 workspace.ChildAdded:Connect(applyESP)
 for _, v in pairs(workspace:GetChildren()) do applyESP(v) endlocal CoreGui = game:GetService("CoreGui")
-if CoreGui:FindFirstChild("GMK_Menu") then CoreGui.GMK_Menu:Destroy() end 
-
+if CoreGui:FindFirstChild("GMK_Menu") then CoreGui.GMK_Menu:Destroy() end
 local GMK_Menu = Instance.new("ScreenGui")
 GMK_Menu.Name = "GMK_Menu"
-GMK_Menu.Parent = CoreGui 
-
+GMK_Menu.Parent = CoreGui
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 420, 0, 280)
 MainFrame.Position = UDim2.new(0.5, -210, 0.5, -140)
@@ -333,8 +323,7 @@ MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = GMK_Menu
-Instance.new("UICorner").CornerRadius = UDim.new(0, 10) MainFrame.Parent = MainFrame 
-
+Instance.new("UICorner").CornerRadius = UDim.new(0, 10) MainFrame.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 35)
 Title.BackgroundTransparency = 1
@@ -343,15 +332,13 @@ Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.TextSize = 16
 Title.Font = Enum.Font.SourceSansBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = MainFrame 
-
+Title.Parent = MainFrame
 local TabPanel = Instance.new("Frame")
 TabPanel.Size = UDim2.new(0, 100, 1, -35)
 TabPanel.Position = UDim2.new(0, 0, 0, 35)
 TabPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 TabPanel.BorderSizePixel = 0
-TabPanel.Parent = MainFrame 
-
+TabPanel.Parent = MainFrame
 local EspPage = Instance.new("ScrollingFrame")
 EspPage.Size = UDim2.new(1, -110, 1, -45)
 EspPage.Position = UDim2.new(0, 105, 0, 40)
@@ -359,8 +346,7 @@ EspPage.BackgroundTransparency = 1
 EspPage.CanvasSize = UDim2.new(0, 0, 0, 400)
 EspPage.ScrollBarThickness = 4
 EspPage.Visible = true
-EspPage.Parent = MainFrame 
-
+EspPage.Parent = MainFrame
 local AimPage = Instance.new("ScrollingFrame")
 AimPage.Size = EspPage.Size
 AimPage.Position = EspPage.Position
@@ -368,8 +354,7 @@ AimPage.BackgroundTransparency = 1
 AimPage.CanvasSize = UDim2.new(0, 0, 0, 400)
 AimPage.ScrollBarThickness = 4
 AimPage.Visible = false
-AimPage.Parent = MainFrame 
-
+AimPage.Parent = MainFrame
 local UIList1 = Instance.new("UIListLayout") UIList1.Padding = UDim.new(0,8) UIList1.Parent = EspPage
 local UIList2 = Instance.new("UIListLayout") UIList2.Padding = UDim.new(0,8) UIList2.Parent = AimPage 
 
@@ -460,8 +445,7 @@ EspTabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 EspTabBtn.Text = "ESP"
 EspTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 EspTabBtn.Font = Enum.Font.SourceSansBold
-EspTabBtn.Parent = TabPanel 
-
+EspTabBtn.Parent = TabPanel
 local AimTabBtn = Instance.new("TextButton")
 AimTabBtn.Size = UDim2.new(1, 0, 0, 40)
 AimTabBtn.Position = UDim2.new(0, 0, 0, 40)
@@ -469,20 +453,17 @@ AimTabBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 AimTabBtn.Text = "AIMBOT"
 AimTabBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
 AimTabBtn.Font = Enum.Font.SourceSansBold
-AimTabBtn.Parent = TabPanel 
-
+AimTabBtn.Parent = TabPanel
 EspTabBtn.MouseButton1Click:Connect(function()
 EspPage.Visible = true AimPage.Visible = false
 EspTabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30) EspTabBtn.TextColor3 = Color3.fromRGB(255,255,255)
 AimTabBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 18) AimTabBtn.TextColor3 = Color3.fromRGB(150,150,150)
-end) 
-
+end)
 AimTabBtn.MouseButton1Click:Connect(function()
 EspPage.Visible = false AimPage.Visible = true
 AimTabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30) AimTabBtn.TextColor3 = Color3.fromRGB(255,255,255)
 EspTabBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 18) EspTabBtn.TextColor3 = Color3.fromRGB(150,150,150)
-end) 
-
+end)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
 CloseBtn.Position = UDim2.new(1, -35, 0, 5)
@@ -503,8 +484,7 @@ createToggle(EspPage, "ESP Сейфы и Кейсы", "itemEspEnabled")
 createSlider(EspPage, "Дистанция до Лута", 50, 1000, "itemMaxDist") 
 
 createToggle(AimPage, "Включить Sentinel Аим", "aimbotEnabled")
-createSlider(AimPage, "Дистанция работы Аима", 10, 500, "aimbotMaxDist") 
-
+createSlider(AimPage, "Дистанция работы Аима", 10, 500, "aimbotMaxDist")
 local partFrame = Instance.new("Frame")
 partFrame.Size = UDim2.new(1, -10, 0, 35)
 partFrame.BackgroundTransparency = 1
@@ -525,14 +505,12 @@ partBtn.Text = "ИЗМЕНИТЬ"
 partBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
 partBtn.Font = Enum.Font.SourceSansBold
 partBtn.Parent = partFrame
-Instance.new("UICorner").CornerRadius = UDim.new(0,6) partBtn.Parent = partBtn 
-
+Instance.new("UICorner").CornerRadius = UDim.new(0,6) partBtn.Parent = partBtn
 partBtn.MouseButton1Click:Connect(function()
 if getgenv().aimbotPartMode == "Closest" then getgenv().aimbotPartMode = "Head"
 elseif getgenv().aimbotPartMode == "Head" then getgenv().aimbotPartMode = "Torso"
 else getgenv().aimbotPartMode = "Closest" end
 partLbl.Text = "  Цель аима: " .. getgenv().aimbotPartMode
-end) 
-
+end)
 createToggle(AimPage, "Показывать круг FOV", "fovCircleVisible")
 createSlider(AimPage, "Радиус круга аима", 30, 400, "fovCircleRadius")
