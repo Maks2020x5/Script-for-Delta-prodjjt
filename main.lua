@@ -170,7 +170,7 @@ local function applyESP(model)
                     bGui.Enabled = getgenv().espEnabled
                     if head and head:IsA("BasePart") then
                         pcall(function()
-                            if getgenv().hitboxEnabled then
+                            if hitboxEnabled then
                                 head.Size = Vector3.new(3, 3, 3)
                                 head.Transparency = 0.7
                                 head.CanCollide = false
@@ -304,7 +304,7 @@ local function applyESP(model)
         uiCorner.CornerRadius = UDim.new(0, 6)
         uiCorner.Parent = txt
         task.spawn(function()
-            while model and model.Parent and triggerPart and txt and bGui and lootHighlight do
+            while model and model.Parent and triggerPart African and txt and bGui and lootHighlight do
                 bGui.Enabled = getgenv().itemEspEnabled
                 lootHighlight.Enabled = getgenv().itemEspEnabled
                 local myHrp = lPlrObj.Character and lPlrObj.Character:FindFirstChild("HumanoidRootPart")
@@ -390,37 +390,46 @@ local EspPage = Instance.new("ScrollingFrame")
 EspPage.Size = UDim2.new(1, -100, 1, -40)
 EspPage.Position = UDim2.new(0, 95, 0, 35)
 EspPage.BackgroundTransparency = 1
-EspPage.CanvasSize = UDim2.new(0, 0, 0, 350)
 EspPage.ScrollBarThickness = 2
 EspPage.Visible = true
+EspPage.AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y
 EspPage.Parent = MainFrame
 
 local AimPage = Instance.new("ScrollingFrame")
 AimPage.Size = EspPage.Size
 AimPage.Position = EspPage.Position
 AimPage.BackgroundTransparency = 1
-AimPage.CanvasSize = UDim2.new(0, 0, 0, 350)
 AimPage.ScrollBarThickness = 2
 AimPage.Visible = false
+AimPage.AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y
 AimPage.Parent = MainFrame
 
-local UIList1 = Instance.new("UIListLayout") UIList1.Padding = UDim.new(0,5) UIList1.Parent = EspPage
-local UIList2 = Instance.new("UIListLayout") UIList2.Padding = UDim.new(0,5) UIList2.Parent = AimPage
+local UIList1 = Instance.new("UIListLayout") 
+UIList1.Padding = UDim.new(0, 8) 
+UIList1.SortOrder = Enum.SortOrder.LayoutOrder
+UIList1.Parent = EspPage
+
+local UIList2 = Instance.new("UIListLayout") 
+UIList2.Padding = UDim.new(0, 8) 
+UIList2.SortOrder = Enum.SortOrder.LayoutOrder
+UIList2.Parent = AimPage
 
 local function createToggle(parent, text, globalVar)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -5, 0, 30)
     frame.BackgroundTransparency = 1
     frame.Parent = parent
+    
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 35, 0, 18)
-    btn.Position = UDim2.new(1, -40, 0.5, -9)
+    btn.Size = UDim2.new(0, 40, 0, 20)
+    btn.Position = UDim2.new(1, -45, 0.5, -10)
     btn.BackgroundColor3 = getgenv()[globalVar] and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(55, 55, 60)
     btn.Text = ""
     btn.Parent = frame
     Instance.new("UICorner").CornerRadius = UDim.new(0,4) btn.Parent = btn
+    
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -50, 1, 0)
+    lbl.Size = UDim2.new(1, -55, 1, 0)
     lbl.Text = text
     lbl.TextColor3 = Color3.fromRGB(220, 230, 220)
     lbl.TextSize = 12
@@ -428,6 +437,7 @@ local function createToggle(parent, text, globalVar)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.BackgroundTransparency = 1
     lbl.Parent = frame
+    
     btn.MouseButton1Click:Connect(function()
         getgenv()[globalVar] = not getgenv()[globalVar]
         btn.BackgroundColor3 = getgenv()[globalVar] and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(55, 55, 60)
@@ -439,6 +449,7 @@ local function createSlider(parent, text, min, max, globalVar)
     frame.Size = UDim2.new(1, -5, 0, 40)
     frame.BackgroundTransparency = 1
     frame.Parent = parent
+    
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(1, 0, 0, 15)
     lbl.Text = text .. ": " .. tostring(getgenv()[globalVar])
@@ -448,12 +459,14 @@ local function createSlider(parent, text, min, max, globalVar)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.BackgroundTransparency = 1
     lbl.Parent = frame
+    
     local slideBar = Instance.new("TextButton")
-    slideBar.Size = UDim2.new(1, -20, 0, 8)
-    slideBar.Position = UDim2.new(0, 10, 0, 25)
-    slideBar.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    slideBar.Size = UDim2.new(1, -10, 0, 8)
+    slideBar.Position = UDim2.new(0, 5, 0, 20)
+    slideBar.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
     slideBar.Text = ""
     slideBar.Parent = frame
+    
     local fill = Instance.new("Frame")
     fill.Size = UDim2.new((getgenv()[globalVar] - min)/(max - min), 0, 1, 0)
     fill.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
@@ -471,6 +484,7 @@ local function createSlider(parent, text, min, max, globalVar)
         lbl.Text = text .. ": " .. tostring(value)
         fill.Size = UDim2.new(percentage, 0, 1, 0)
     end
+    
     slideBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             isDragging = true updateSlider(input)
@@ -521,44 +535,10 @@ end)
 
 createToggle(EspPage, "Включить ESP игрока", "espEnabled")
 createSlider(EspPage, "Дистанция ESP", 100, 2000, "maxDist")
-createToggle(EspPage, "Увеличить Хитбоксы", "hitboxEnabled")
-createToggle(EspPage, "ESP Мины", "mineEspEnabled")
-createSlider(EspPage, "Дистанция Мин", 50, 500, "mineMaxDist")
+createToggle(EspPage, "ESP Мины / Растяжки", "mineEspEnabled")
 createToggle(EspPage, "ESP Сейфы / Кейсы", "itemEspEnabled")
-createSlider(EspPage, "Дистанция Лута", 50, 1000, "itemMaxDist")
 
 createToggle(AimPage, "Включить Sentinel Аим", "aimbotEnabled")
 createSlider(AimPage, "Дистанция Аима", 10, 500, "aimbotMaxDist")
-
-local partFrame = Instance.new("Frame")
-partFrame.Size = UDim2.new(1, -5, 0, 30)
-partFrame.BackgroundTransparency = 1
-partFrame.Parent = AimPage
-local partLbl = Instance.new("TextLabel")
-partLbl.Size = UDim2.new(1, -90, 1, 0)
-partLbl.Text = "Цель: " .. getgenv().aimbotPartMode
-partLbl.TextColor3 = Color3.fromRGB(220, 230, 220)
-partLbl.TextSize = 12
-partLbl.BackgroundTransparency = 1
-partLbl.TextXAlignment = Enum.TextXAlignment.Left
-partLbl.Parent = partFrame
-local partBtn = Instance.new("TextButton")
-partBtn.Size = UDim2.new(0, 80, 0, 20)
-partBtn.Position = UDim2.new(1, -85, 0.5, -10)
-partBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-partBtn.Text = "ИЗМЕНИТЬ"
-partBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
-partBtn.Font = Enum.Font.SourceSansBold
-partBtn.TextSize = 11
-partBtn.Parent = partFrame
-Instance.new("UICorner").CornerRadius = UDim.new(0,4) partBtn.Parent = partBtn
-
-partBtn.MouseButton1Click:Connect(function()
-    if getgenv().aimbotPartMode == "Closest" then getgenv().aimbotPartMode = "Head"
-    elseif getgenv().aimbotPartMode == "Head" then getgenv().aimbotPartMode = "Torso"
-    else getgenv().aimbotPartMode = "Closest" end
-    partLbl.Text = "Цель: " .. getgenv().aimbotPartMode
-end)
-
+createSlider(AimPage, "Радиус FOV круга", 30, 400, "fovCircleRadius")
 createToggle(AimPage, "Показывать круг FOV", "fovCircleVisible")
-createSlider(AimPage, "Радиус круга аима", 30, 400, "fovCircleRadius")
