@@ -360,7 +360,7 @@ OpenBtn.TextSize = 14
 OpenBtn.Font = Enum.Font.SourceSansBold
 OpenBtn.Active = true
 OpenBtn.Draggable = true
-OpenBtn.ZIndex = 10
+OpenBtn.ZIndex = 50
 OpenBtn.Parent = GMK_Menu
 
 local BtnCorner = Instance.new("UICorner")
@@ -380,7 +380,7 @@ Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.TextSize = 14
 Title.Font = Enum.Font.SourceSansBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.ZIndex = 2
+Title.ZIndex = 5
 Title.Parent = MainFrame
 
 local TabPanel = Instance.new("Frame")
@@ -388,52 +388,48 @@ TabPanel.Size = UDim2.new(0, 90, 0, 210)
 TabPanel.Position = UDim2.new(0, 0, 0, 30)
 TabPanel.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 TabPanel.BorderSizePixel = 0
-TabPanel.ZIndex = 2
+TabPanel.ZIndex = 5
 TabPanel.Parent = MainFrame
 
-local EspPage = Instance.new("ScrollingFrame")
+local EspPage = Instance.new("Frame")
 EspPage.Size = UDim2.new(0, 250, 0, 195)
 EspPage.Position = UDim2.new(0, 100, 0, 35)
 EspPage.BackgroundTransparency = 1
-EspPage.ScrollBarThickness = 4
 EspPage.Visible = true
-EspPage.AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y
-EspPage.ZIndex = 2
+EspPage.ZIndex = 5
 EspPage.Parent = MainFrame
 
-local AimPage = Instance.new("ScrollingFrame")
+local AimPage = Instance.new("Frame")
 AimPage.Size = UDim2.new(0, 250, 0, 195)
 AimPage.Position = UDim2.new(0, 100, 0, 35)
 AimPage.BackgroundTransparency = 1
-AimPage.ScrollBarThickness = 4
 AimPage.Visible = false
-AimPage.AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y
-AimPage.ZIndex = 2
+AimPage.ZIndex = 5
 AimPage.Parent = MainFrame
 
 local UIList1 = Instance.new("UIListLayout") 
-UIList1.Padding = UDim.new(0, 8) 
+UIList1.Padding = UDim.new(0, 6) 
 UIList1.SortOrder = Enum.SortOrder.LayoutOrder
 UIList1.Parent = EspPage
 
 local UIList2 = Instance.new("UIListLayout") 
-UIList2.Padding = UDim.new(0, 8) 
+UIList2.Padding = UDim.new(0, 6) 
 UIList2.SortOrder = Enum.SortOrder.LayoutOrder
 UIList2.Parent = AimPage
 
 local function createToggle(parent, text, globalVar)
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 235, 0, 30)
+    frame.Size = UDim2.new(0, 235, 0, 28)
     frame.BackgroundTransparency = 1
-    frame.ZIndex = 3
+    frame.ZIndex = 6
     frame.Parent = parent
     
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 40, 0, 20)
-    btn.Position = UDim2.new(0, 185, 0.5, -10)
+    btn.Size = UDim2.new(0, 40, 0, 18)
+    btn.Position = UDim2.new(0, 185, 0.5, -9)
     btn.BackgroundColor3 = getgenv()[globalVar] and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(55, 55, 60)
     btn.Text = ""
-    btn.ZIndex = 4
+    btn.ZIndex = 7
     btn.Parent = frame
     Instance.new("UICorner").CornerRadius = UDim.new(0,4) btn.Parent = btn
     
@@ -442,11 +438,11 @@ local function createToggle(parent, text, globalVar)
     lbl.Position = UDim2.new(0, 5, 0, 0)
     lbl.Text = text
     lbl.TextColor3 = Color3.fromRGB(220, 230, 220)
-    lbl.TextSize = 12
+    lbl.TextSize = 11
     lbl.Font = Enum.Font.SourceSans
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.BackgroundTransparency = 1
-    lbl.ZIndex = 4
+    lbl.ZIndex = 7
     lbl.Parent = frame
     
     btn.MouseButton1Click:Connect(function()
@@ -457,13 +453,13 @@ end
 
 local function createSlider(parent, text, min, max, globalVar)
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 235, 0, 40)
+    frame.Size = UDim2.new(0, 235, 0, 36)
     frame.BackgroundTransparency = 1
-    frame.ZIndex = 3
+    frame.ZIndex = 6
     frame.Parent = parent
     
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(0, 230, 0, 15)
+    lbl.Size = UDim2.new(0, 230, 0, 14)
     lbl.Position = UDim2.new(0, 5, 0, 0)
     lbl.Text = text .. ": " .. tostring(getgenv()[globalVar])
     lbl.TextColor3 = Color3.fromRGB(180, 190, 180)
@@ -471,22 +467,22 @@ local function createSlider(parent, text, min, max, globalVar)
     lbl.Font = Enum.Font.SourceSans
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.BackgroundTransparency = 1
-    lbl.ZIndex = 4
+    lbl.ZIndex = 7
     lbl.Parent = frame
     
     local slideBar = Instance.new("TextButton")
-    slideBar.Size = UDim2.new(0, 225, 0, 8)
-    slideBar.Position = UDim2.new(0, 5, 0, 20)
+    slideBar.Size = UDim2.new(0, 225, 0, 6)
+    slideBar.Position = UDim2.new(0, 5, 0, 18)
     slideBar.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
     slideBar.Text = ""
-    slideBar.ZIndex = 4
+    slideBar.ZIndex = 7
     slideBar.Parent = frame
     
     local fill = Instance.new("Frame")
     fill.Size = UDim2.new((getgenv()[globalVar] - min)/(max - min), 0, 1, 0)
     fill.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
     fill.BorderSizePixel = 0
-    fill.ZIndex = 5
+    fill.ZIndex = 8
     fill.Parent = slideBar
     
     local isDragging = false
@@ -526,7 +522,7 @@ EspTabBtn.Text = "ESP"
 EspTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 EspTabBtn.Font = Enum.Font.SourceSansBold
 EspTabBtn.TextSize = 13
-EspTabBtn.ZIndex = 3
+EspTabBtn.ZIndex = 10
 EspTabBtn.Parent = TabPanel
 
 local AimTabBtn = Instance.new("TextButton")
@@ -537,7 +533,7 @@ AimTabBtn.Text = "AIMBOT"
 AimTabBtn.TextColor3 = Color3.fromRGB(140, 140, 140)
 AimTabBtn.Font = Enum.Font.SourceSansBold
 AimTabBtn.TextSize = 13
-AimTabBtn.ZIndex = 3
+AimTabBtn.ZIndex = 10
 AimTabBtn.Parent = TabPanel
 
 EspTabBtn.MouseButton1Click:Connect(function()
