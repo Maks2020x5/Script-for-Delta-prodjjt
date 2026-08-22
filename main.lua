@@ -170,7 +170,7 @@ local function applyESP(model)
                     bGui.Enabled = getgenv().espEnabled
                     if head and head:IsA("BasePart") then
                         pcall(function()
-                            if hitboxEnabled then
+                            if getgenv().hitboxEnabled then
                                 head.Size = Vector3.new(3, 3, 3)
                                 head.Transparency = 0.7
                                 head.CanCollide = false
