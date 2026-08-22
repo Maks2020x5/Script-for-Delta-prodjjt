@@ -329,7 +329,17 @@ local function applyESP(model)
 end
 workspace.ChildAdded:Connect(applyESP)
 for _, v in pairs(workspace:GetChildren()) do applyESP(v) end
-local TargetParent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+local TargetParent = nil
+if pcall(function() return gethui() end) and gethui() then
+    TargetParent = gethui()
+elseif game:GetService("CoreGui"):FindFirstChild("RobloxGui") then
+    TargetParent = game:GetService("CoreGui")
+else
+    TargetParent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui", 10)
+end
+
+if not TargetParent then TargetParent = game:GetService("Players").LocalPlayer.PlayerGui end
+
 if TargetParent:FindFirstChild("GMK_Menu") then TargetParent.GMK_Menu:Destroy() end
 
 local GMK_Menu = Instance.new("ScreenGui")
@@ -345,6 +355,7 @@ MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Visible = false
+MainFrame.ZIndex = 100
 MainFrame.Parent = GMK_Menu
 Instance.new("UICorner").CornerRadius = UDim.new(0, 8) MainFrame.Parent = MainFrame
 
@@ -358,6 +369,7 @@ OpenBtn.TextSize = 14
 OpenBtn.Font = Enum.Font.SourceSansBold
 OpenBtn.Active = true
 OpenBtn.Draggable = true
+OpenBtn.ZIndex = 500
 OpenBtn.Parent = GMK_Menu
 Instance.new("UICorner").CornerRadius = UDim.new(0, 6) OpenBtn.Parent = OpenBtn
 
@@ -374,6 +386,7 @@ Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.TextSize = 14
 Title.Font = Enum.Font.SourceSansBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.ZIndex = 105
 Title.Parent = MainFrame
 
 local TabPanel = Instance.new("Frame")
@@ -381,6 +394,7 @@ TabPanel.Size = UDim2.new(0, 90, 0, 210)
 TabPanel.Position = UDim2.new(0, 0, 0, 30)
 TabPanel.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 TabPanel.BorderSizePixel = 0
+TabPanel.ZIndex = 105
 TabPanel.Parent = MainFrame
 
 local EspTabBtn = Instance.new("TextButton")
@@ -391,6 +405,7 @@ EspTabBtn.Text = "ESP"
 EspTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 EspTabBtn.Font = Enum.Font.SourceSansBold
 EspTabBtn.TextSize = 13
+EspTabBtn.ZIndex = 110
 EspTabBtn.Parent = TabPanel
 
 local AimTabBtn = Instance.new("TextButton")
@@ -401,6 +416,7 @@ AimTabBtn.Text = "AIMBOT"
 AimTabBtn.TextColor3 = Color3.fromRGB(140, 140, 140)
 AimTabBtn.Font = Enum.Font.SourceSansBold
 AimTabBtn.TextSize = 13
+AimTabBtn.ZIndex = 110
 AimTabBtn.Parent = TabPanel
 
 local function createToggleObj(text, globalVar, yPos)
@@ -413,6 +429,7 @@ local function createToggleObj(text, globalVar, yPos)
     lbl.TextSize = 12
     lbl.Font = Enum.Font.SourceSansBold
     lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.ZIndex = 125
     lbl.Parent = MainFrame
 
     local btn = Instance.new("TextButton")
@@ -420,6 +437,7 @@ local function createToggleObj(text, globalVar, yPos)
     btn.Position = UDim2.new(0, 295, 0, yPos + 3)
     btn.BackgroundColor3 = getgenv()[globalVar] and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(55, 55, 60)
     btn.Text = ""
+    btn.ZIndex = 125
     btn.Parent = MainFrame
     Instance.new("UICorner").CornerRadius = UDim.new(0, 4) btn.Parent = btn
 
@@ -440,6 +458,7 @@ local function createSliderObj(text, min, max, globalVar, yPos)
     lbl.TextSize = 11
     lbl.Font = Enum.Font.SourceSansBold
     lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.ZIndex = 125
     lbl.Parent = MainFrame
 
     local slideBar = Instance.new("TextButton")
@@ -447,12 +466,14 @@ local function createSliderObj(text, min, max, globalVar, yPos)
     slideBar.Position = UDim2.new(0, 105, 0, yPos + 18)
     slideBar.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
     slideBar.Text = ""
+    slideBar.ZIndex = 125
     slideBar.Parent = MainFrame
 
     local fill = Instance.new("Frame")
     fill.Size = UDim2.new((getgenv()[globalVar] - min)/(max - min), 0, 1, 0)
     fill.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
     fill.BorderSizePixel = 0
+    fill.ZIndex = 126
     fill.Parent = slideBar
 
     local isDragging = false
