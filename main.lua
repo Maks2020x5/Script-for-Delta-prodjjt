@@ -391,129 +391,6 @@ TabPanel.BorderSizePixel = 0
 TabPanel.ZIndex = 5
 TabPanel.Parent = MainFrame
 
-local EspPage = Instance.new("Frame")
-EspPage.Size = UDim2.new(0, 250, 0, 195)
-EspPage.Position = UDim2.new(0, 100, 0, 35)
-EspPage.BackgroundTransparency = 1
-EspPage.Visible = true
-EspPage.ZIndex = 5
-EspPage.Parent = MainFrame
-
-local AimPage = Instance.new("Frame")
-AimPage.Size = UDim2.new(0, 250, 0, 195)
-AimPage.Position = UDim2.new(0, 100, 0, 35)
-AimPage.BackgroundTransparency = 1
-AimPage.Visible = false
-AimPage.ZIndex = 5
-AimPage.Parent = MainFrame
-
-local UIList1 = Instance.new("UIListLayout") 
-UIList1.Padding = UDim.new(0, 6) 
-UIList1.SortOrder = Enum.SortOrder.LayoutOrder
-UIList1.Parent = EspPage
-
-local UIList2 = Instance.new("UIListLayout") 
-UIList2.Padding = UDim.new(0, 6) 
-UIList2.SortOrder = Enum.SortOrder.LayoutOrder
-UIList2.Parent = AimPage
-
-local function createToggle(parent, text, globalVar)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 235, 0, 28)
-    frame.BackgroundTransparency = 1
-    frame.ZIndex = 6
-    frame.Parent = parent
-    
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 40, 0, 18)
-    btn.Position = UDim2.new(0, 185, 0.5, -9)
-    btn.BackgroundColor3 = getgenv()[globalVar] and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(55, 55, 60)
-    btn.Text = ""
-    btn.ZIndex = 7
-    btn.Parent = frame
-    Instance.new("UICorner").CornerRadius = UDim.new(0,4) btn.Parent = btn
-    
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(0, 175, 1, 0)
-    lbl.Position = UDim2.new(0, 5, 0, 0)
-    lbl.Text = text
-    lbl.TextColor3 = Color3.fromRGB(220, 230, 220)
-    lbl.TextSize = 11
-    lbl.Font = Enum.Font.SourceSans
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.BackgroundTransparency = 1
-    lbl.ZIndex = 7
-    lbl.Parent = frame
-    
-    btn.MouseButton1Click:Connect(function()
-        getgenv()[globalVar] = not getgenv()[globalVar]
-        btn.BackgroundColor3 = getgenv()[globalVar] and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(55, 55, 60)
-    end)
-end
-
-local function createSlider(parent, text, min, max, globalVar)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 235, 0, 36)
-    frame.BackgroundTransparency = 1
-    frame.ZIndex = 6
-    frame.Parent = parent
-    
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(0, 230, 0, 14)
-    lbl.Position = UDim2.new(0, 5, 0, 0)
-    lbl.Text = text .. ": " .. tostring(getgenv()[globalVar])
-    lbl.TextColor3 = Color3.fromRGB(180, 190, 180)
-    lbl.TextSize = 11
-    lbl.Font = Enum.Font.SourceSans
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.BackgroundTransparency = 1
-    lbl.ZIndex = 7
-    lbl.Parent = frame
-    
-    local slideBar = Instance.new("TextButton")
-    slideBar.Size = UDim2.new(0, 225, 0, 6)
-    slideBar.Position = UDim2.new(0, 5, 0, 18)
-    slideBar.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
-    slideBar.Text = ""
-    slideBar.ZIndex = 7
-    slideBar.Parent = frame
-    
-    local fill = Instance.new("Frame")
-    fill.Size = UDim2.new((getgenv()[globalVar] - min)/(max - min), 0, 1, 0)
-    fill.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
-    fill.BorderSizePixel = 0
-    fill.ZIndex = 8
-    fill.Parent = slideBar
-    
-    local isDragging = false
-    local function updateSlider(inputObject)
-        local inputPos = inputObject.Position.X
-        local barAbsolutePos = slideBar.AbsolutePosition.X
-        local barAbsoluteSize = slideBar.AbsoluteSize.X
-        local percentage = math.clamp((inputPos - barAbsolutePos) / barAbsoluteSize, 0, 1)
-        local value = math.floor(min + (max - min) * percentage)
-        getgenv()[globalVar] = value
-        lbl.Text = text .. ": " .. tostring(value)
-        fill.Size = UDim2.new(percentage, 0, 1, 0)
-    end
-    
-    slideBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            isDragging = true updateSlider(input)
-        end
-    end)
-    game:GetService("UserInputService").InputChanged:Connect(function(input)
-        if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            updateSlider(input)
-        end
-    end)
-    game:GetService("UserInputService").InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            isDragging = false
-        end
-    end)
-end
-
 local EspTabBtn = Instance.new("TextButton")
 EspTabBtn.Size = UDim2.new(0, 90, 0, 35)
 EspTabBtn.Position = UDim2.new(0, 0, 0, 0)
@@ -536,24 +413,126 @@ AimTabBtn.TextSize = 13
 AimTabBtn.ZIndex = 10
 AimTabBtn.Parent = TabPanel
 
+local function createToggleObj(text, globalVar, yPos)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0, 160, 0, 25)
+    lbl.Position = UDim2.new(0, 105, 0, yPos)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.TextColor3 = Color3.fromRGB(230, 230, 230)
+    lbl.TextSize = 12
+    lbl.Font = Enum.Font.SourceSansBold
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.ZIndex = 25
+    lbl.Parent = MainFrame
+
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 40, 0, 18)
+    btn.Position = UDim2.new(0, 295, 0, yPos + 3)
+    btn.BackgroundColor3 = getgenv()[globalVar] and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(55, 55, 60)
+    btn.Text = ""
+    btn.ZIndex = 25
+    btn.Parent = MainFrame
+    Instance.new("UICorner").CornerRadius = UDim.new(0, 4) btn.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        getgenv()[globalVar] = not getgenv()[globalVar]
+        btn.BackgroundColor3 = getgenv()[globalVar] and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(55, 55, 60)
+    end)
+    return lbl, btn
+end
+
+local function createSliderObj(text, min, max, globalVar, yPos)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0, 230, 0, 15)
+    lbl.Position = UDim2.new(0, 105, 0, yPos)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text .. ": " .. tostring(getgenv()[globalVar])
+    lbl.TextColor3 = Color3.fromRGB(180, 190, 180)
+    lbl.TextSize = 11
+    lbl.Font = Enum.Font.SourceSansBold
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.ZIndex = 25
+    lbl.Parent = MainFrame
+
+    local slideBar = Instance.new("TextButton")
+    slideBar.Size = UDim2.new(0, 230, 0, 6)
+    slideBar.Position = UDim2.new(0, 105, 0, yPos + 18)
+    slideBar.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+    slideBar.Text = ""
+    slideBar.ZIndex = 25
+    slideBar.Parent = MainFrame
+
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new((getgenv()[globalVar] - min)/(max - min), 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
+    fill.BorderSizePixel = 0
+    fill.ZIndex = 26
+    fill.Parent = slideBar
+
+    local isDragging = false
+    local function updateSlider(inputObject)
+        local inputPos = inputObject.Position.X
+        local barAbsolutePos = slideBar.AbsolutePosition.X
+        local barAbsoluteSize = slideBar.AbsoluteSize.X
+        local percentage = math.clamp((inputPos - barAbsolutePos) / barAbsoluteSize, 0, 1)
+        local value = math.floor(min + (max - min) * percentage)
+        getgenv()[globalVar] = value
+        lbl.Text = text .. ": " .. tostring(value)
+        fill.Size = UDim2.new(percentage, 0, 1, 0)
+    end
+
+    slideBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = true updateSlider(input)
+        end
+    end)
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateSlider(input)
+        end
+    end)
+    game:GetService("UserInputService").InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = false
+        end
+    end)
+    return lbl, slideBar
+end
+
+local eL1, eB1 = createToggleObj("Включить ESP игрока", "espEnabled", 35)
+local eL2, eB2 = createSliderObj("Дистанция ESP", 100, 2000, "maxDist", 65)
+local eL3, eB3 = createToggleObj("ESP Мины / Растяжки", "mineEspEnabled", 105)
+local eL4, eB4 = createToggleObj("ESP Сейфы / Кейсы", "itemEspEnabled", 135)
+
+local aL1, aB1 = createToggleObj("Включить Sentinel Аим", "aimbotEnabled", 35)
+local aL2, aB2 = createSliderObj("Дистанция Аима", 10, 500, "aimbotMaxDist", 65)
+local aL3, aB3 = createSliderObj("Радиус FOV круга", 30, 400, "fovCircleRadius", 105)
+local aL4, aB4 = createToggleObj("Показывать круг FOV", "fovCircleVisible", 145)
+
+local function showEspPage(state)
+    eL1.Visible = state eB1.Visible = state eL2.Visible = state eB2.Visible = state
+    eL3.Visible = state eB3.Visible = state eL4.Visible = state eB4.Visible = state
+end
+
+local function showAimPage(state)
+    aL1.Visible = state aB1.Visible = state aL2.Visible = state aB2.Visible = state
+    aL3.Visible = state aB3.Visible = state aL4.Visible = state aB4.Visible = state
+end
+
+showEspPage(true)
+showAimPage(false)
+
 EspTabBtn.MouseButton1Click:Connect(function()
-    EspPage.Visible = true AimPage.Visible = false
     EspTabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30) EspTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     AimTabBtn.BackgroundColor3 = Color3.fromRGB(18, 18, 22) AimTabBtn.TextColor3 = Color3.fromRGB(140, 140, 140)
+    showEspPage(true)
+    showAimPage(false)
 end)
 
 AimTabBtn.MouseButton1Click:Connect(function()
-    EspPage.Visible = false AimPage.Visible = true
     AimTabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30) AimTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     EspTabBtn.BackgroundColor3 = Color3.fromRGB(18, 18, 22) EspTabBtn.TextColor3 = Color3.fromRGB(140, 140, 140)
+    showEspPage(false)
+    showAimPage(true)
 end)
-
-createToggle(EspPage, "Включить ESP игрока", "espEnabled")
-createSlider(EspPage, "Дистанция ESP", 100, 2000, "maxDist")
-createToggle(EspPage, "ESP Мины / Растяжки", "mineEspEnabled")
-createToggle(EspPage, "ESP Сейфы / Кейсы", "itemEspEnabled")
-
-createToggle(AimPage, "Включить Sentinel Аим", "aimbotEnabled")
-createSlider(AimPage, "Дистанция Аима", 10, 500, "aimbotMaxDist")
-createSlider(AimPage, "Радиус FOV круга", 30, 400, "fovCircleRadius")
-createToggle(AimPage, "Показывать круг FOV", "fovCircleVisible")
