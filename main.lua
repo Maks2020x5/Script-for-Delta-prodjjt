@@ -336,107 +336,114 @@ GMK_Menu.Name = "GMK_Menu"
 GMK_Menu.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 420, 0, 280)
-MainFrame.Position = UDim2.new(0.5, -210, 0.5, -140)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainFrame.Size = UDim2.new(0, 360, 0, 240)
+MainFrame.Position = UDim2.new(0.5, -180, 0.5, -120)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.Visible = false -- Меню скрыто на старте
+MainFrame.Visible = false
 MainFrame.Parent = GMK_Menu
-Instance.new("UICorner").CornerRadius = UDim.new(0, 10) MainFrame.Parent = MainFrame
 
--- Создание плавающей кнопки открытия меню
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 8)
+MainCorner.Parent = MainFrame
+
 local OpenBtn = Instance.new("TextButton")
-OpenBtn.Size = UDim2.new(0, 45, 0, 45)
-OpenBtn.Position = UDim2.new(0.1, 0, 0.2, 0)
-OpenBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-OpenBtn.Text = "G"
+OpenBtn.Size = UDim2.new(0, 60, 0, 35)
+OpenBtn.Position = UDim2.new(0.5, -30, 0.5, -17)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+OpenBtn.Text = "GMK"
 OpenBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
-OpenBtn.TextSize = 18
+OpenBtn.TextSize = 14
 OpenBtn.Font = Enum.Font.SourceSansBold
 OpenBtn.Active = true
-OpenBtn.Draggable = true -- Кнопку можно таскать пальцем
+OpenBtn.Draggable = true
 OpenBtn.Parent = GMK_Menu
-local btnCorner = Instance.new("UICorner")
-btnCorner.CornerRadius = UDim.new(1, 0) -- Делаем её идеально круглой
-btnCorner.Parent = OpenBtn
+
+local BtnCorner = Instance.new("UICorner")
+BtnCorner.CornerRadius = UDim.new(0, 6)
+BtnCorner.Parent = OpenBtn
 
 OpenBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 35)
+Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.Text = "  GMK GUI | DELTA & XENO"
+Title.Text = "   GMK MENU"
 Title.TextColor3 = Color3.fromRGB(0, 255, 150)
-Title.TextSize = 16
+Title.TextSize = 14
 Title.Font = Enum.Font.SourceSansBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = MainFrame
+
 local TabPanel = Instance.new("Frame")
-TabPanel.Size = UDim2.new(0, 100, 1, -35)
-TabPanel.Position = UDim2.new(0, 0, 0, 35)
-TabPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+TabPanel.Size = UDim2.new(0, 90, 1, -30)
+TabPanel.Position = UDim2.new(0, 0, 0, 30)
+TabPanel.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 TabPanel.BorderSizePixel = 0
 TabPanel.Parent = MainFrame
+
 local EspPage = Instance.new("ScrollingFrame")
-EspPage.Size = UDim2.new(1, -110, 1, -45)
-EspPage.Position = UDim2.new(0, 105, 0, 40)
+EspPage.Size = UDim2.new(1, -100, 1, -40)
+EspPage.Position = UDim2.new(0, 95, 0, 35)
 EspPage.BackgroundTransparency = 1
-EspPage.CanvasSize = UDim2.new(0, 0, 0, 400)
-EspPage.ScrollBarThickness = 4
+EspPage.CanvasSize = UDim2.new(0, 0, 0, 350)
+EspPage.ScrollBarThickness = 2
 EspPage.Visible = true
 EspPage.Parent = MainFrame
+
 local AimPage = Instance.new("ScrollingFrame")
 AimPage.Size = EspPage.Size
 AimPage.Position = EspPage.Position
 AimPage.BackgroundTransparency = 1
-AimPage.CanvasSize = UDim2.new(0, 0, 0, 400)
-AimPage.ScrollBarThickness = 4
+AimPage.CanvasSize = UDim2.new(0, 0, 0, 350)
+AimPage.ScrollBarThickness = 2
 AimPage.Visible = false
 AimPage.Parent = MainFrame
-local UIList1 = Instance.new("UIListLayout") UIList1.Padding = UDim.new(0,8) UIList1.Parent = EspPage
-local UIList2 = Instance.new("UIListLayout") UIList2.Padding = UDim.new(0,8) UIList2.Parent = AimPage
+
+local UIList1 = Instance.new("UIListLayout") UIList1.Padding = UDim.new(0,5) UIList1.Parent = EspPage
+local UIList2 = Instance.new("UIListLayout") UIList2.Padding = UDim.new(0,5) UIList2.Parent = AimPage
 
 local function createToggle(parent, text, globalVar)
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -10, 0, 35)
+    frame.Size = UDim2.new(1, -5, 0, 30)
     frame.BackgroundTransparency = 1
     frame.Parent = parent
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 45, 0, 22)
-    btn.Position = UDim2.new(1, -50, 0.5, -11)
-    btn.BackgroundColor3 = getgenv()[globalVar] and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(60, 60, 65)
+    btn.Size = UDim2.new(0, 35, 0, 18)
+    btn.Position = UDim2.new(1, -40, 0.5, -9)
+    btn.BackgroundColor3 = getgenv()[globalVar] and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(55, 55, 60)
     btn.Text = ""
     btn.Parent = frame
-    Instance.new("UICorner").CornerRadius = UDim.new(0,6) btn.Parent = btn
+    Instance.new("UICorner").CornerRadius = UDim.new(0,4) btn.Parent = btn
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -60, 1, 0)
-    lbl.Text = "  " .. text
-    lbl.TextColor3 = Color3.fromRGB(230, 230, 230)
-    lbl.TextSize = 14
+    lbl.Size = UDim2.new(1, -50, 1, 0)
+    lbl.Text = text
+    lbl.TextColor3 = Color3.fromRGB(220, 230, 220)
+    lbl.TextSize = 12
     lbl.Font = Enum.Font.SourceSans
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.BackgroundTransparency = 1
     lbl.Parent = frame
     btn.MouseButton1Click:Connect(function()
         getgenv()[globalVar] = not getgenv()[globalVar]
-        btn.BackgroundColor3 = getgenv()[globalVar] and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(60, 60, 65)
+        btn.BackgroundColor3 = getgenv()[globalVar] and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(55, 55, 60)
     end)
 end
 
 local function createSlider(parent, text, min, max, globalVar)
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -10, 0, 45)
+    frame.Size = UDim2.new(1, -5, 0, 40)
     frame.BackgroundTransparency = 1
     frame.Parent = parent
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 0, 20)
-    lbl.Text = "  " .. text .. ": " .. tostring(getgenv()[globalVar])
-    lbl.TextColor3 = Color3.fromRGB(200, 200, 200)
-    lbl.TextSize = 13
+    lbl.Size = UDim2.new(1, 0, 0, 15)
+    lbl.Text = text .. ": " .. tostring(getgenv()[globalVar])
+    lbl.TextColor3 = Color3.fromRGB(180, 190, 180)
+    lbl.TextSize = 11
     lbl.Font = Enum.Font.SourceSans
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.BackgroundTransparency = 1
@@ -461,7 +468,7 @@ local function createSlider(parent, text, min, max, globalVar)
         local percentage = math.clamp((inputPos - barAbsolutePos) / barAbsoluteSize, 0, 1)
         local value = math.floor(min + (max - min) * percentage)
         getgenv()[globalVar] = value
-        lbl.Text = "  " .. text .. ": " .. tostring(value)
+        lbl.Text = text .. ": " .. tostring(value)
         fill.Size = UDim2.new(percentage, 0, 1, 0)
     end
     slideBar.InputBegan:Connect(function(input)
@@ -482,77 +489,76 @@ local function createSlider(parent, text, min, max, globalVar)
 end
 
 local EspTabBtn = Instance.new("TextButton")
-EspTabBtn.Size = UDim2.new(1, 0, 0, 40)
+EspTabBtn.Size = UDim2.new(1, 0, 0, 35)
 EspTabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 EspTabBtn.Text = "ESP"
 EspTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 EspTabBtn.Font = Enum.Font.SourceSansBold
+EspTabBtn.TextSize = 13
 EspTabBtn.Parent = TabPanel
+
 local AimTabBtn = Instance.new("TextButton")
-AimTabBtn.Size = UDim2.new(1, 0, 0, 40)
-AimTabBtn.Position = UDim2.new(0, 0, 0, 40)
-AimTabBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+AimTabBtn.Size = UDim2.new(1, 0, 0, 35)
+AimTabBtn.Position = UDim2.new(0, 0, 0, 35)
+AimTabBtn.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 AimTabBtn.Text = "AIMBOT"
-AimTabBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+AimTabBtn.TextColor3 = Color3.fromRGB(140, 140, 140)
 AimTabBtn.Font = Enum.Font.SourceSansBold
+AimTabBtn.TextSize = 13
 AimTabBtn.Parent = TabPanel
+
 EspTabBtn.MouseButton1Click:Connect(function()
     EspPage.Visible = true AimPage.Visible = false
-    EspTabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30) EspTabBtn.TextColor3 = Color3.fromRGB(255,255,255)
-    AimTabBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 18) AimTabBtn.TextColor3 = Color3.fromRGB(150,150,150)
+    EspTabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30) EspTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    AimTabBtn.BackgroundColor3 = Color3.fromRGB(18, 18, 22) AimTabBtn.TextColor3 = Color3.fromRGB(140, 140, 140)
 end)
+
 AimTabBtn.MouseButton1Click:Connect(function()
     EspPage.Visible = false AimPage.Visible = true
-    AimTabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30) AimTabBtn.TextColor3 = Color3.fromRGB(255,255,255)
-    EspTabBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 18) EspTabBtn.TextColor3 = Color3.fromRGB(150,150,150)
+    AimTabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30) AimTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    EspTabBtn.BackgroundColor3 = Color3.fromRGB(18, 18, 22) EspTabBtn.TextColor3 = Color3.fromRGB(140, 140, 140)
 end)
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -35, 0, 5)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.Font = Enum.Font.SourceSansBold
-CloseBtn.Parent = MainFrame
-Instance.new("UICorner").CornerRadius = UDim.new(0,6) CloseBtn.Parent = CloseBtn
-CloseBtn.MouseButton1Click:Connect(function() GMK_Menu:Destroy() end)
 
 createToggle(EspPage, "Включить ESP игрока", "espEnabled")
-createSlider(EspPage, "Дистанция ESP игрока", 100, 2000, "maxDist")
-createToggle(EspPage, "Увеличить Хитбоксы головы", "hitboxEnabled")
-createToggle(EspPage, "ESP Мины / Растяжки", "mineEspEnabled")
-createSlider(EspPage, "Дистанция до Мин", 50, 500, "mineMaxDist")
-createToggle(EspPage, "ESP Сейфы и Кейсы", "itemEspEnabled")
-createSlider(EspPage, "Дистанция до Лута", 50, 1000, "itemMaxDist")
+createSlider(EspPage, "Дистанция ESP", 100, 2000, "maxDist")
+createToggle(EspPage, "Увеличить Хитбоксы", "hitboxEnabled")
+createToggle(EspPage, "ESP Мины", "mineEspEnabled")
+createSlider(EspPage, "Дистанция Мин", 50, 500, "mineMaxDist")
+createToggle(EspPage, "ESP Сейфы / Кейсы", "itemEspEnabled")
+createSlider(EspPage, "Дистанция Лута", 50, 1000, "itemMaxDist")
 
 createToggle(AimPage, "Включить Sentinel Аим", "aimbotEnabled")
-createSlider(AimPage, "Дистанция работы Аима", 10, 500, "aimbotMaxDist")
+createSlider(AimPage, "Дистанция Аима", 10, 500, "aimbotMaxDist")
+
 local partFrame = Instance.new("Frame")
-partFrame.Size = UDim2.new(1, -10, 0, 35)
+partFrame.Size = UDim2.new(1, -5, 0, 30)
 partFrame.BackgroundTransparency = 1
 partFrame.Parent = AimPage
 local partLbl = Instance.new("TextLabel")
-partLbl.Size = UDim2.new(1, -120, 1, 0)
-partLbl.Text = "  Цель аима: " .. getgenv().aimbotPartMode
-partLbl.TextColor3 = Color3.fromRGB(230, 230, 230)
-partLbl.TextSize = 14
+partLbl.Size = UDim2.new(1, -90, 1, 0)
+partLbl.Text = "Цель: " .. getgenv().aimbotPartMode
+partLbl.TextColor3 = Color3.fromRGB(220, 230, 220)
+partLbl.TextSize = 12
 partLbl.BackgroundTransparency = 1
 partLbl.TextXAlignment = Enum.TextXAlignment.Left
 partLbl.Parent = partFrame
 local partBtn = Instance.new("TextButton")
-partBtn.Size = UDim2.new(0, 100, 0, 25)
-partBtn.Position = UDim2.new(1, -105, 0.5, -12)
-partBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+partBtn.Size = UDim2.new(0, 80, 0, 20)
+partBtn.Position = UDim2.new(1, -85, 0.5, -10)
+partBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
 partBtn.Text = "ИЗМЕНИТЬ"
 partBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
 partBtn.Font = Enum.Font.SourceSansBold
+partBtn.TextSize = 11
 partBtn.Parent = partFrame
-Instance.new("UICorner").CornerRadius = UDim.new(0,6) partBtn.Parent = partBtn
+Instance.new("UICorner").CornerRadius = UDim.new(0,4) partBtn.Parent = partBtn
+
 partBtn.MouseButton1Click:Connect(function()
     if getgenv().aimbotPartMode == "Closest" then getgenv().aimbotPartMode = "Head"
     elseif getgenv().aimbotPartMode == "Head" then getgenv().aimbotPartMode = "Torso"
     else getgenv().aimbotPartMode = "Closest" end
-    partLbl.Text = "  Цель аима: " .. getgenv().aimbotPartMode
+    partLbl.Text = "Цель: " .. getgenv().aimbotPartMode
 end)
+
 createToggle(AimPage, "Показывать круг FOV", "fovCircleVisible")
 createSlider(AimPage, "Радиус круга аима", 30, 400, "fovCircleRadius")
