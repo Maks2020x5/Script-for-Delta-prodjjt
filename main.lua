@@ -242,7 +242,7 @@ local function applyESP(model)
         uiCorner.CornerRadius = UDim.new(0, 6)
         uiCorner.Parent = txt
         task.spawn(function()
-            while model and model.Parent Useful triggerPart and txt and bGui and mineHighlight do
+            while model and model.Parent and triggerPart and txt and bGui and mineHighlight do
                 bGui.Enabled = getgenv().mineEspEnabled
                 mineHighlight.Enabled = getgenv().mineEspEnabled
                 local myHrp = lPlrObj.Character and lPlrObj.Character:FindFirstChild("HumanoidRootPart")
