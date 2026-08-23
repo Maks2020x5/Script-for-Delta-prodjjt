@@ -172,36 +172,36 @@ titleText.Font = Enum.Font.SourceSansBold
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = titleBar
 
+local boneNames = {"Head", "UpperTorso", "LeftHand", "RightHand", "LeftLowerLeg", "RightLowerLeg"}
 local checkCache = {}
+local boneCache = {}
 local lastCacheClear = os.clock()
 
-local function checkPlayerVisibility(character)
-    if not character then return false end
+local function getVisiblePart(character)
+    if not character then return nil end
     local now = os.clock()
-    if now - lastCacheClear > 0.1 then
+    if now - lastCacheClear > 0.05 then
         table.clear(checkCache)
+        table.clear(boneCache)
         lastCacheClear = now
     end
-    if checkCache[character] ~= nil then return checkCache[character] end
+    if checkCache[character] ~= nil then return boneCache[character] end
 
-    local head = character:FindFirstChild("Head")
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    local foot = character:FindFirstChild("LeftFoot") or character:FindFirstChild("Left Leg")
-    
-    local points = {}
-    if head then table.insert(points, head.Position) end
-    if hrp then table.insert(points, hrp.Position) end
-    if foot then table.insert(points, foot.Position) end
-    
-    if #points == 0 then 
-        checkCache[character] = false
-        return false 
+    local ignoreList = {lPlr.Character, cam}
+    for _, bName in ipairs(boneNames) do
+        local part = character:FindFirstChild(bName)
+        if part then
+            local obscuring = cam:GetPartsObscuringTarget({part.Position}, ignoreList)
+            if #obscuring == 0 then
+                checkCache[character] = true
+                boneCache[character] = part
+                return part
+            end
+        end
     end
-    
-    local obscuringParts = cam:GetPartsObscuringTarget(points, {lPlr.Character, cam})
-    local result = #obscuringParts <= 1
-    checkCache[character] = result
-    return result
+    checkCache[character] = false
+    boneCache[character] = nil
+    return nil
 end
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
@@ -290,7 +290,7 @@ createToggle("📦 ESP ЛУТ (КЕЙСЫ)", "itemEspEnabled", 4)
 createToggle("💥 ESP МИНЫ", "mineEspEnabled", 5)
 
 local function getTargetInFov()
-    local target = nil
+    local targetPart = nil
     local shortestDist = math.huge
     local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
     if not myHrp then return nil end
@@ -298,19 +298,17 @@ local function getTargetInFov()
     for _, v in pairs(workspace:GetChildren()) do
         if v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Name ~= lPlr.Name then
             if v.Humanoid.Health > 0 then
-                local head = v:FindFirstChild("Head")
-                if head then
-                    local screenPos, onScreen = cam:WorldToViewportPoint(head.Position)
+                local visiblePart = getVisiblePart(v)
+                if visiblePart then
+                    local screenPos, onScreen = cam:WorldToViewportPoint(visiblePart.Position)
                     if onScreen then
-                        local worldDist = (myHrp.Position - head.Position).Magnitude
+                        local worldDist = (myHrp.Position - visiblePart.Position).Magnitude
                         if worldDist <= getgenv().aimbotMaxDist then
                             local mousePos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
                             local fovDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
                             if fovDist <= getgenv().aimbotFov and fovDist < shortestDist then
-                                if checkPlayerVisibility(v) then
-                                    shortestDist = fovDist
-                                    target = head
-                                end
+                                shortestDist = fovDist
+                                targetPart = visiblePart
                             end
                         end
                     end
@@ -318,20 +316,27 @@ local function getTargetInFov()
             end
         end
     end
-    return target
+    return targetPart
 end
 local oldNamecall
 oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
     local method = getnamecallmethod()
+    local args = {...}
     
+    local res = oldNamecall(self, ...)
     if getgenv().aimbotEnabled and getgenv().aimMode == "Sentinel" and (method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList" or method == "Raycast") then
         local target = getTargetInFov()
         if target then
-            if method == "Raycast" then return RaycastResult.new() end
-            return target, target.Position, Vector3.new(0, 1, 0), target.Material
+            if method == "Raycast" and res then
+                local fakeRes = {Instance = target, Position = target.Position, Material = target.Material, Normal = Vector3.new(0,1,0), Distance = res.Distance}
+                setmetatable(fakeRes, getmetatable(res))
+                return fakeRes
+            elseif method ~= "Raycast" then
+                return target, target.Position, Vector3.new(0, 1, 0), target.Material
+            end
         end
     end
-    return oldNamecall(self, ...)
+    return res
 end)
 
 runService.RenderStepped:Connect(function()
@@ -342,10 +347,16 @@ runService.RenderStepped:Connect(function()
     end
     
     if getgenv().aimbotEnabled and getgenv().aimMode == "Legit" then
-        local targetHead = getTargetInFov()
-        if targetHead then
-            local targetCFrame = CFrame.new(cam.CFrame.Position, targetHead.Position)
-            cam.CFrame = cam.CFrame:Lerp(targetCFrame, 0.08)
+        local targetPart = getTargetInFov()
+        if targetPart then
+            local screenPos, onScreen = cam:WorldToViewportPoint(targetPart.Position)
+            if onScreen then
+                local mousePos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+                local currentDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                local lerpAlpha = currentDist > 40 and 0.14 or 0.05
+                local targetCFrame = CFrame.new(cam.CFrame.Position, targetPart.Position)
+                cam.CFrame = cam.CFrame:Lerp(targetCFrame, lerpAlpha)
+            end
         end
     end
 end)
@@ -377,10 +388,10 @@ local function applyLightESP(model)
                         local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
                         if myHrp then
                             local d = math.floor((myHrp.Position - hrp.Position).Magnitude)
-                            local isVisible = checkPlayerVisibility(model)
+                            local visiblePart = getVisiblePart(model)
                             local base = isDead and "[ТРУП]" or game.Players:FindFirstChild(model.Name) and "[ИГРОК]" or "[БОТ]"
                             
-                            local c = isDead and Color3.fromRGB(150, 150, 150) or isVisible and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+                            local c = isDead and Color3.fromRGB(150, 150, 150) or visiblePart and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
                             
                             hl.OutlineColor, txt.TextColor3 = c, c
                             txt.Text = base .. " " .. tostring(d) .. "m"
@@ -428,10 +439,11 @@ local function applyLightESP(model)
         task.spawn(function()
             while model and model.Parent and p and t and b do
                 b.Enabled = getgenv().itemEspEnabled
+                t.Visible = getgenv().itemEspEnabled
                 local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
                 if myHrp and getgenv().itemEspEnabled then 
-                    t.Text, t.Visible = cleanName .. " [" .. tostring(math.floor((myHrp.Position - p.Position).Magnitude)) .. "m]", true 
-                else t.Visible = false end
+                    t.Text = cleanName .. " [" .. tostring(math.floor((myHrp.Position - p.Position).Magnitude)) .. "m]"
+                end
                 task.wait(0.5)
             end
         end)
