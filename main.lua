@@ -7,9 +7,10 @@ getgenv().aimbotMaxDist = 1000
 getgenv().aimbotFov = 120
 getgenv().showFovCircle = true
 getgenv().nvgButtonEnabled = false
-getgenv().thermalEnabled = false
+getgenv().thermalButtonEnabled = false
 getgenv().fpsBoostEnabled = false
-getgenv().zoomMultiplier = 1
+getgenv().zoomMultiplier = 2
+getgenv().zoomButtonEnabled = false
 
 local lPlr = game:GetService("Players").LocalPlayer
 local cam = workspace.CurrentCamera
@@ -18,6 +19,8 @@ local tweenService = game:GetService("TweenService")
 local lighting = game:GetService("Lighting")
 local inputService = game:GetService("UserInputService")
 local soundService = game:GetService("SoundService")
+
+local lastAimTime = os.clock()
 
 local fovCircle = Drawing.new("Circle")
 fovCircle.Visible = getgenv().showFovCircle
@@ -32,9 +35,10 @@ screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 if syn and syn.protect_gui then syn.protect_gui(screenGui) end
 screenGui.Parent = game:GetService("CoreGui") or lPlr:WaitForChild("PlayerGui")
+
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 200, 0, 480)
+mainFrame.Size = UDim2.new(0, 220, 0, 520)
 mainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.BorderSizePixel = 0
@@ -72,12 +76,12 @@ subLayout.Padding = UDim.new(0, 5)
 subLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 subLayout.SortOrder = Enum.SortOrder.LayoutOrder
 subLayout.Parent = subFrame
+
 local subPad = Instance.new("Frame")
 subPad.Size = UDim2.new(1, 0, 0, 15)
 subPad.BackgroundTransparency = 1
 subPad.LayoutOrder = 0
 subPad.Parent = subFrame
-
 local function createConfigButton(text, fovVal, distVal, order)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 170, 0, 30)
@@ -115,6 +119,7 @@ local function playHitSound()
     local sound = Instance.new("Sound")
     sound.SoundId = "rbxassetid://9114223193"; sound.Volume = 0.4; sound.PlayOnRemove = true; sound.Parent = soundService; sound:Destroy()
 end
+
 local fovToggleBtn = Instance.new("TextButton")
 fovToggleBtn.Size = UDim2.new(0, 170, 0, 30)
 fovToggleBtn.Font = Enum.Font.SourceSansBold
@@ -156,6 +161,7 @@ local bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand"}
 local wallCheckCache = {}
 local lastCacheReset = os.clock()
 local targetHealthTracker = {}
+
 local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(0.8, 0, 1, 0)
 titleText.Position = UDim2.new(0.05, 0, 0, 0)
@@ -166,7 +172,6 @@ titleText.TextSize = 14
 titleText.Font = Enum.Font.SourceSansBold
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = titleBar
-
 local dragging, dragInput, dragStart, startPos
 titleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -228,6 +233,7 @@ local function getTargetData()
     end
     return bestPart, shortestFovDist
 end
+
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
 minimizeBtn.Position = UDim2.new(0.83, 0, 0.08, 0)
@@ -240,7 +246,7 @@ minimizeBtn.Parent = titleBar
 
 local contentFrame = Instance.new("Frame")
 contentFrame.Name = "Content"
-contentFrame.Size = UDim2.new(1, 0, 0, 440)
+contentFrame.Size = UDim2.new(1, 0, 0, 480)
 contentFrame.Position = UDim2.new(0, 0, 0, 35)
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
@@ -250,68 +256,169 @@ layout.Padding = UDim.new(0, 6)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Parent = contentFrame
-
 local isMinimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
-        contentFrame.Visible = false; subFrame.Visible = false; mainFrame.Size = UDim2.new(0, 200, 0, 35); minimizeBtn.Text = "+"
+        contentFrame.Visible = false; subFrame.Visible = false; mainFrame.Size = UDim2.new(0, 220, 0, 35); minimizeBtn.Text = "+"
     else
-        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 200, 0, 480); minimizeBtn.Text = "—"
+        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 220, 0, 520); minimizeBtn.Text = "—"
     end
 end)
 
+local function makeButtonDraggable(button)
+    local bDragging, bDragInput, bDragStart, bStartPos
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            bDragging = true; bDragStart = input.Position; bStartPos = button.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then bDragging = false end end)
+        end
+    end)
+    button.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then bDragInput = input end end)
+    inputService.InputChanged:Connect(function(input)
+        if input == bDragInput and bDragging then
+            local delta = input.Position - bDragStart
+            button.Position = UDim2.new(bStartPos.X.Scale, bStartPos.X.Offset + delta.X, bStartPos.Y.Scale, bStartPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
 local actionButton = Instance.new("TextButton")
 actionButton.Name = "NvgScreenButton"
-actionButton.Size = UDim2.new(0, 60, 0, 60)
-actionButton.Position = UDim2.new(0.85, 0, 0.4, 0)
+actionButton.Size = UDim2.new(0, 55, 0, 55)
+actionButton.Position = UDim2.new(0.85, 0, 0.35, 0)
 actionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 actionButton.TextColor3 = Color3.fromRGB(0, 255, 0)
-actionButton.TextSize = 14
+actionButton.TextSize = 12
 actionButton.Font = Enum.Font.SourceSansBold
 actionButton.Text = "NVG"
 actionButton.Visible = false
 actionButton.Parent = screenGui
-
 Instance.new("UICorner", actionButton).CornerRadius = UDim.new(1, 0)
 local actStroke = Instance.new("UIStroke")
 actStroke.Color = Color3.fromRGB(0, 255, 0)
 actStroke.Thickness = 2
 actStroke.Parent = actionButton
+makeButtonDraggable(actionButton)
 
-local btnDragging, btnDragInput, btnDragStart, btnStartPos
-actionButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        btnDragging = true; btnDragStart = input.Position; btnStartPos = actionButton.Position
-        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then btnDragging = false end end)
-    end
-end)
-actionButton.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then btnDragInput = input end end)
-inputService.InputChanged:Connect(function(input)
-    if input == btnDragInput and btnDragging then
-        local delta = input.Position - btnDragStart
-        actionButton.Position = UDim2.new(btnStartPos.X.Scale, btnStartPos.X.Offset + delta.X, btnStartPos.Y.Scale, btnStartPos.Y.Offset + delta.Y)
-    end
-end)
-local nvgActive = false; local origAmbient, origOutdoor, origColorCorr
-local function turnOffNvg()
-    nvgActive = false; actionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30); actionButton.TextColor3 = Color3.fromRGB(0, 255, 0)
-    if origAmbient then lighting.Ambient = origAmbient end; if origOutdoor then lighting.OutdoorAmbient = origOutdoor end
+local thermalActionButton = Instance.new("TextButton")
+thermalActionButton.Name = "ThermalScreenButton"
+thermalActionButton.Size = UDim2.new(0, 55, 0, 55)
+thermalActionButton.Position = UDim2.new(0.85, 0, 0.45, 0)
+thermalActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+thermalActionButton.TextColor3 = Color3.fromRGB(255, 100, 0)
+thermalActionButton.TextSize = 11
+thermalActionButton.Font = Enum.Font.SourceSansBold
+thermalActionButton.Text = "THRM"
+thermalActionButton.Visible = false
+thermalActionButton.Parent = screenGui
+Instance.new("UICorner", thermalActionButton).CornerRadius = UDim.new(1, 0)
+local thrmStroke = Instance.new("UIStroke")
+thrmStroke.Color = Color3.fromRGB(255, 100, 0)
+thrmStroke.Thickness = 2
+thrmStroke.Parent = thermalActionButton
+makeButtonDraggable(thermalActionButton)
+
+local zoomActionButton = Instance.new("TextButton")
+zoomActionButton.Name = "ZoomScreenButton"
+zoomActionButton.Size = UDim2.new(0, 55, 0, 55)
+zoomActionButton.Position = UDim2.new(0.85, 0, 0.55, 0)
+zoomActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+zoomActionButton.TextColor3 = Color3.fromRGB(0, 220, 255)
+zoomActionButton.TextSize = 11
+zoomActionButton.Font = Enum.Font.SourceSansBold
+zoomActionButton.Text = "ZOOM"
+zoomActionButton.Visible = false
+zoomActionButton.Parent = screenGui
+Instance.new("UICorner", zoomActionButton).CornerRadius = UDim.new(1, 0)
+local zoomStroke = Instance.new("UIStroke")
+zoomStroke.Color = Color3.fromRGB(0, 220, 255)
+zoomStroke.Thickness = 2
+zoomStroke.Parent = zoomActionButton
+makeButtonDraggable(zoomActionButton)
+
+local nvgActive = false
+local thermalActive = false
+local zoomActive = false
+local origAmbient, origOutdoor, origColorCorr
+
+local function resetLightingEffects()
+    if origAmbient then lighting.Ambient = origAmbient end
+    if origOutdoor then lighting.OutdoorAmbient = origOutdoor end
     local cc = lighting:FindFirstChildOfClass("ColorCorrectionEffect")
-    if cc and origColorCorr then cc.TintColor = origColorCorr.TintColor; cc.Brightness = origColorCorr.Brightness end
+    if cc and origColorCorr then 
+        cc.TintColor = origColorCorr.TintColor
+        cc.Brightness = origColorCorr.Brightness
+        cc.Contrast = origColorCorr.Contrast
+        cc.Saturation = origColorCorr.Saturation
+    end
 end
 
+local function turnOffNvg()
+    nvgActive = false
+    actionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    actionButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+    if not thermalActive then resetLightingEffects() end
+end
 actionButton.MouseButton1Click:Connect(function()
     nvgActive = not nvgActive
     if nvgActive then
+        if thermalActive then
+            thermalActive = false
+            thermalActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            thermalActionButton.TextColor3 = Color3.fromRGB(255, 100, 0)
+        end
         actionButton.BackgroundColor3 = Color3.fromRGB(0, 80, 0); actionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        origAmbient = lighting.Ambient; origOutdoor = lighting.OutdoorAmbient
-        if getgenv().thermalEnabled then lighting.Ambient = Color3.fromRGB(10, 20, 80); lighting.OutdoorAmbient = Color3.fromRGB(10, 15, 60)
-        else lighting.Ambient = Color3.fromRGB(100, 255, 100); lighting.OutdoorAmbient = Color3.fromRGB(100, 255, 100) end
+        if not origAmbient then origAmbient = lighting.Ambient; origOutdoor = lighting.OutdoorAmbient end
+        
+        lighting.Ambient = Color3.fromRGB(100, 255, 100)
+        lighting.OutdoorAmbient = Color3.fromRGB(100, 255, 100)
+        
         local cc = lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect", lighting)
-        origColorCorr = {TintColor = cc.TintColor, Brightness = cc.Brightness}
-        cc.TintColor = getgenv().thermalEnabled and Color3.fromRGB(100, 150, 255) or Color3.fromRGB(120, 255, 120); cc.Brightness = 0.2
-    else turnOffNvg() end
+        if not origColorCorr then origColorCorr = {TintColor = cc.TintColor, Brightness = cc.Brightness, Contrast = cc.Contrast, Saturation = cc.Saturation} end
+        cc.TintColor = Color3.fromRGB(120, 255, 120); cc.Brightness = 0.2; cc.Contrast = 0; cc.Saturation = 0
+    else 
+        turnOffNvg() 
+    end
+end)
+
+thermalActionButton.MouseButton1Click:Connect(function()
+    thermalActive = not thermalActive
+    if thermalActive then
+        if nvgActive then
+            nvgActive = false
+            actionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            actionButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+        end
+        thermalActionButton.BackgroundColor3 = Color3.fromRGB(180, 50, 0); thermalActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        if not origAmbient then origAmbient = lighting.Ambient; origOutdoor = lighting.OutdoorAmbient end
+        
+        lighting.Ambient = Color3.fromRGB(15, 20, 60)
+        lighting.OutdoorAmbient = Color3.fromRGB(10, 15, 40)
+        
+        local cc = lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect", lighting)
+        if not origColorCorr then origColorCorr = {TintColor = cc.TintColor, Brightness = cc.Brightness, Contrast = cc.Contrast, Saturation = cc.Saturation} end
+        cc.TintColor = Color3.fromRGB(80, 120, 255)
+        cc.Brightness = 0.1
+        cc.Contrast = 0.6
+        cc.Saturation = -0.8
+    else
+        thermalActive = false
+        thermalActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        thermalActionButton.TextColor3 = Color3.fromRGB(255, 100, 0)
+        resetLightingEffects()
+    end
+end)
+
+zoomActionButton.MouseButton1Click:Connect(function()
+    zoomActive = not zoomActive
+    if zoomActive then
+        zoomActionButton.BackgroundColor3 = Color3.fromRGB(0, 120, 150)
+        zoomActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    else
+        zoomActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        zoomActionButton.TextColor3 = Color3.fromRGB(0, 220, 255)
+    end
 end)
 
 local backupEffects = {}; local origShadows = lighting.GlobalShadows
@@ -335,19 +442,33 @@ end
 
 local function createToggle(text, env_val, order)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 180, 0, 32); btn.Font = Enum.Font.SourceSansBold; btn.TextSize = 13; btn.BorderSizePixel = 0; btn.LayoutOrder = order; btn.Parent = contentFrame
+    btn.Size = UDim2.new(0, 200, 0, 32); btn.Font = Enum.Font.SourceSansBold; btn.TextSize = 13; btn.BorderSizePixel = 0; btn.LayoutOrder = order; btn.Parent = contentFrame
     local btnCorner = Instance.new("UICorner"); btnCorner.CornerRadius = UDim.new(0, 6); btnCorner.Parent = btn
+    
     local function updateVisuals()
         if getgenv()[env_val] then
             btn.BackgroundColor3 = Color3.fromRGB(34, 139, 34); btn.Text = text .. ": ВКЛ"; btn.TextColor3 = Color3.fromRGB(255, 255, 255)
             if env_val == "aimbotEnabled" and not isMinimized then subFrame.Visible = true end
             if env_val == "nvgButtonEnabled" then actionButton.Visible = true end
+            if env_val == "thermalButtonEnabled" then thermalActionButton.Visible = true end
+            if env_val == "zoomButtonEnabled" then zoomActionButton.Visible = true end
             if env_val == "fpsBoostEnabled" then toggleFpsBoost(true) end
         else
             btn.BackgroundColor3 = Color3.fromRGB(139, 0, 0); btn.Text = text .. ": ВЫКЛ"; btn.TextColor3 = Color3.fromRGB(200, 200, 200)
             if env_val == "aimbotEnabled" then subFrame.Visible = false end
             if env_val == "fpsBoostEnabled" then toggleFpsBoost(false) end
-            if env_val == "nvgButtonEnabled" then actionButton.Visible = false; if nvgActive then turnOffNvg() end end
+            if env_val == "nvgButtonEnabled" then actionButton.Visible = false; turnOffNvg() end
+            if env_val == "thermalButtonEnabled" then 
+                thermalActionButton.Visible = false
+                thermalActive = false
+                thermalActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                resetLightingEffects()
+            end
+            if env_val == "zoomButtonEnabled" then
+                zoomActionButton.Visible = false
+                zoomActive = false
+                zoomActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            end
             if env_val == "itemEspEnabled" or env_val == "mineEspEnabled" then destroyAllLootGuis() end
         end
     end
@@ -360,18 +481,18 @@ createToggle("💀 ESP ТРУПЫ", "corpseEspEnabled", 3)
 createToggle("📦 ESP ЛУТ / КЕЙСЫ", "itemEspEnabled", 4)
 createToggle("💥 ESP МИНЫ", "mineEspEnabled", 5)
 createToggle("🟢 ПНВ КНОПКА", "nvgButtonEnabled", 6)
-createToggle("🔥 ТЕПЛОВИЗОР МУД", "thermalEnabled", 7)
-createToggle("⚡ ФПС БУСТ", "fpsBoostEnabled", 8)
-
+createToggle("🔥 ТЕПЛОВИЗОР ФУНКЦИЯ", "thermalButtonEnabled", 7)
+createToggle("🔭 ЗУМ ОПТИКА КНОПКА", "zoomButtonEnabled", 8)
+createToggle("⚡ ФПС БУСТ", "fpsBoostEnabled", 9)
 local sliderLabel = Instance.new("TextLabel")
-sliderLabel.Size = UDim2.new(0, 180, 0, 18); sliderLabel.BackgroundTransparency = 1; sliderLabel.Font = Enum.Font.SourceSansBold; sliderLabel.TextSize = 12; sliderLabel.TextColor3 = Color3.fromRGB(0, 255, 150); sliderLabel.Text = "🔭 ОПТИКА ЗУМ: 1x (ВЫКЛ)"; sliderLabel.LayoutOrder = 9; sliderLabel.Parent = contentFrame
+sliderLabel.Size = UDim2.new(0, 200, 0, 18); sliderLabel.BackgroundTransparency = 1; sliderLabel.Font = Enum.Font.SourceSansBold; sliderLabel.TextSize = 12; sliderLabel.TextColor3 = Color3.fromRGB(0, 220, 255); sliderLabel.Text = "🔭 КРАТНОСТЬ ЗУМА: 2x"; sliderLabel.LayoutOrder = 10; sliderLabel.Parent = contentFrame
 
 local sliderFrame = Instance.new("Frame")
-sliderFrame.Size = UDim2.new(0, 180, 0, 14); sliderFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45); sliderFrame.LayoutOrder = 10; sliderFrame.Parent = contentFrame
+sliderFrame.Size = UDim2.new(0, 200, 0, 14); sliderFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45); sliderFrame.LayoutOrder = 11; sliderFrame.Parent = contentFrame
 Instance.new("UICorner", sliderFrame).CornerRadius = UDim.new(0, 4)
 
 local sliderBtn = Instance.new("TextButton")
-sliderBtn.Size = UDim2.new(0, 14, 1, 0); sliderBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 150); sliderBtn.Text = ""; sliderBtn.Parent = sliderFrame
+sliderBtn.Size = UDim2.new(0, 14, 1, 0); sliderBtn.BackgroundColor3 = Color3.fromRGB(0, 220, 255); sliderBtn.Text = ""; sliderBtn.Parent = sliderFrame
 Instance.new("UICorner", sliderBtn).CornerRadius = UDim.new(0, 4)
 
 local slidingZoom = false
@@ -382,15 +503,20 @@ inputService.InputChanged:Connect(function(input)
         local mousePos = input.Position.X; local frameLeft = sliderFrame.AbsolutePosition.X; local frameWidth = sliderFrame.AbsoluteSize.X
         local percentage = math.clamp((mousePos - frameLeft) / frameWidth, 0, 1)
         sliderBtn.Position = UDim2.new(percentage * (1 - 14/frameWidth), 0, 0, 0)
-        local calculatedZoom = math.floor(1 + (percentage * 9))
+        
+        local calculatedZoom = math.floor(2 + (percentage * 14))
         getgenv().zoomMultiplier = calculatedZoom
-        sliderLabel.Text = calculatedZoom == 1 and "🔭 ОПТИКА ЗУМ: 1x (ВЫКЛ)" or "🔭 ОПТИКА ЗУМ: " .. tostring(calculatedZoom) .. "x"
+        sliderLabel.Text = "🔭 КРАТНОСТЬ ЗУМА: " .. tostring(calculatedZoom) .. "x"
     end
 end)
+
 runService.RenderStepped:Connect(function()
-    cam.FieldOfView = cam.FieldOfView + ((70 / getgenv().zoomMultiplier) - cam.FieldOfView) * 0.2
+    local targetMultiplier = zoomActive and getgenv().zoomMultiplier or 1
+    cam.FieldOfView = cam.FieldOfView + ((70 / targetMultiplier) - cam.FieldOfView) * 0.2
+    
     fovCircle.Visible = getgenv().showFovCircle and getgenv().aimbotEnabled
     if fovCircle.Visible then fovCircle.Position = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2); fovCircle.Radius = getgenv().aimbotFov end
+    
     if getgenv().aimbotEnabled and (os.clock() - lastAimTime > 0.01) then
         lastAimTime = os.clock()
         local targetPart, fovDist = getTargetData()
@@ -398,12 +524,24 @@ runService.RenderStepped:Connect(function()
             local enemyHrp = targetPart.Parent:FindFirstChild("HumanoidRootPart")
             local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
             local finalPos = targetPart.Position
-            if enemyHrp and myHrp then finalPos = targetPart.Position + (enemyHrp.Velocity * ((myHrp.Position - targetPart.Position).Magnitude / 900)) end
+            
+            if enemyHrp and myHrp then 
+                local bulletSpeed = 950
+                local distance = (myHrp.Position - targetPart.Position).Magnitude
+                local travelTime = distance / bulletSpeed
+                
+                local movePrediction = enemyHrp.Velocity * travelTime
+                local gravityCorrection = Vector3.new(0, 0.5 * 196.2 * (travelTime ^ 2), 0)
+                
+                finalPos = targetPart.Position + movePrediction + gravityCorrection
+            end
+            
             local fovRatio = 1 - (fovDist / getgenv().aimbotFov)
             cam.CFrame = cam.CFrame:Lerp(CFrame.new(cam.CFrame.Position, finalPos), 0.12 + (0.33 * fovRatio))
         end
     end
 end)
+
 local function applyLightESP(m)
     if not m or not m.Parent or not m:IsA("Model") or not m:FindFirstChild("Humanoid") or not m:FindFirstChild("HumanoidRootPart") or m.Name == lPlr.Name then return end
     local hrp, hum = m.HumanoidRootPart, m.Humanoid; targetHealthTracker[m] = hum.Health
@@ -430,7 +568,14 @@ local function applyLightESP(m)
                     if d <= 4000 then
                         local isReal = game.Players:FindFirstChild(m.Name) ~= nil; local base = isDead and "[ТРУП]" or isReal and "[ИГРОК]" or "[БОТ / ДИКИЙ]"
                         local c = isDead and Color3.fromRGB(150, 150, 150) or getBestVisibleBone(m) and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-                        if getgenv().thermalEnabled and nvgActive and not isDead then hl.FillColor = Color3.fromRGB(255, 60, 0); hl.FillTransparency = 0.3; c = Color3.fromRGB(255, 200, 0) else hl.FillTransparency = 1 end
+                        
+                        if thermalActive and not isDead then 
+                            hl.FillColor = Color3.fromRGB(255, 80, 0)
+                            hl.FillTransparency = 0.25
+                            c = Color3.fromRGB(255, 230, 0) 
+                        else 
+                            hl.FillTransparency = 1 
+                        end
                         hl.OutlineColor, txt.TextColor3 = c, c; txt.Text = base .. " " .. tostring(d) .. "m" .. (isDead and "" or " [" .. math.floor(hum.Health) .. " HP]"); txt.Visible = true
                     else txt.Visible = false end
                 else txt.Visible = false end
@@ -439,6 +584,7 @@ local function applyLightESP(m)
         end)
     end
 end
+
 workspace.DescendantAdded:Connect(applyLightESP)
 task.spawn(function()
     while true do
@@ -476,4 +622,6 @@ task.spawn(function()
         task.wait(1.0)
     end
 end)
-for _, v in pairs(workspace:GetDescendants()) do pcall(function() applyLightESP(v) end) end
+for _, v in pairs(workspace:GetDescendants()) do pcall(function() applyLightESP(v)
+        end) 
+end
