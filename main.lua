@@ -173,12 +173,18 @@ local function getBestVisibleBone(character)
     local myHead = lPlr.Character:FindFirstChild("Head")
     if not myHead then return nil end
 
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    rayParams.FilterDescendantsInstances = {lPlr.Character, cam, character}
+    rayParams.IgnoreWater = true
+
     for _, boneName in ipairs(bonePriority) do
         local part = character:FindFirstChild(boneName)
         if part then
-            local ray = Ray.new(myHead.Position, (part.Position - myHead.Position).Unit * 999)
-            local hit = workspace:FindPartOnRayWithIgnoreList(ray, {lPlr.Character, cam, character}, false, true)
-            if not hit or hit.CanCollide == false or hit.Transparency > 0.8 then
+            local origin = myHead.Position
+            local direction = part.Position - origin
+            local cast = workspace:Raycast(origin, direction, rayParams)
+            if not cast or cast.Instance.CanCollide == false or cast.Instance.Transparency > 0.7 then
                 wallCheckCache[character] = part
                 return part
             end
@@ -288,7 +294,7 @@ local function toggleFpsBoost(enable)
             end
         end
         for _, part in pairs(workspace:GetDescendants()) do
-            if part:IsA("BasePart") and not part:IsDescendantOf(lPlr.Character) and part.Material ~= Enum.Material.SmoothPlastic then
+            if part:IsA("BasePart") and not part:IsDescendantOf(lPlr.Character) then
                 materialBackup[part] = part.Material
                 part.Material = Enum.Material.SmoothPlastic
             end
@@ -351,12 +357,6 @@ local function createToggle(text, env_val, order)
         updateVisuals()
     end)
 end
-
-local pad = Instance.new("Frame")
-pad.Size = UDim2.new(1, 0, 0, 2)
-pad.BackgroundTransparency = 1
-pad.LayoutOrder = 0
-pad.Parent = contentFrame
 
 createToggle("🎯 АИМБОТ", "aimbotEnabled", 1)
 createToggle("👤 ESP ИГРОКИ", "espEnabled", 2)
