@@ -38,7 +38,8 @@ screenGui.Parent = game:GetService("CoreGui") or lPlr:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 220, 0, 520)
+-- ИСПРАВЛЕНО: ГУИ расширено в 2 раза (было 200, стало 400 по оси X)
+mainFrame.Size = UDim2.new(0, 400, 0, 420)
 mainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.BorderSizePixel = 0
@@ -236,7 +237,7 @@ end
 
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
-minimizeBtn.Position = UDim2.new(0.83, 0, 0.08, 0)
+minimizeBtn.Position = UDim2.new(0.9, 0, 0.08, 0)
 minimizeBtn.BackgroundTransparency = 1
 minimizeBtn.Text = "—"
 minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -246,13 +247,14 @@ minimizeBtn.Parent = titleBar
 
 local contentFrame = Instance.new("Frame")
 contentFrame.Name = "Content"
-contentFrame.Size = UDim2.new(1, 0, 0, 480)
+contentFrame.Size = UDim2.new(1, 0, 0, 380)
 contentFrame.Position = UDim2.new(0, 0, 0, 35)
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
 
-local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, 6)
+local layout = Instance.new("UIGridLayout")
+layout.Padding = UDim2.new(0, 10, 0, 10)
+layout.CellSize = UDim2.new(0, 185, 0, 32)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Parent = contentFrame
@@ -260,9 +262,9 @@ local isMinimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
-        contentFrame.Visible = false; subFrame.Visible = false; mainFrame.Size = UDim2.new(0, 220, 0, 35); minimizeBtn.Text = "+"
+        contentFrame.Visible = false; subFrame.Visible = false; mainFrame.Size = UDim2.new(0, 400, 0, 35); minimizeBtn.Text = "+"
     else
-        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 220, 0, 520); minimizeBtn.Text = "—"
+        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 400, 0, 420); minimizeBtn.Text = "—"
     end
 end)
 
@@ -336,6 +338,33 @@ zoomStroke.Color = Color3.fromRGB(0, 220, 255)
 zoomStroke.Thickness = 2
 zoomStroke.Parent = zoomActionButton
 makeButtonDraggable(zoomActionButton)
+
+-- ИСПРАВЛЕНО: Элементы ползунка создаются на экране и привязаны к кнопке ZOOM
+local extSliderFrame = Instance.new("Frame")
+extSliderFrame.Name = "ExtSliderFrame"
+extSliderFrame.Size = UDim2.new(0, 130, 0, 14)
+extSliderFrame.Position = UDim2.new(0, -140, 0, 20) -- Слева от кнопки ZOOM
+extSliderFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+extSliderFrame.Visible = false
+extSliderFrame.Parent = zoomActionButton
+Instance.new("UICorner", extSliderFrame).CornerRadius = UDim.new(0, 4)
+
+local extSliderBtn = Instance.new("TextButton")
+extSliderBtn.Size = UDim2.new(0, 14, 1, 0)
+extSliderBtn.BackgroundColor3 = Color3.fromRGB(0, 220, 255)
+extSliderBtn.Text = ""
+extSliderBtn.Parent = extSliderFrame
+Instance.new("UICorner", extSliderBtn).CornerRadius = UDim.new(0, 4)
+
+local extSliderLabel = Instance.new("TextLabel")
+extSliderLabel.Size = UDim2.new(0, 130, 0, 16)
+extSliderLabel.Position = UDim2.new(0, 0, 0, -18)
+extSliderLabel.BackgroundTransparency = 1
+extSliderLabel.Font = Enum.Font.SourceSansBold
+extSliderLabel.TextSize = 11
+extSliderLabel.TextColor3 = Color3.fromRGB(0, 220, 255)
+extSliderLabel.Text = "ЗУМ: 2x"
+extSliderLabel.Parent = extSliderFrame
 
 local nvgActive = false
 local thermalActive = false
@@ -415,9 +444,11 @@ zoomActionButton.MouseButton1Click:Connect(function()
     if zoomActive then
         zoomActionButton.BackgroundColor3 = Color3.fromRGB(0, 120, 150)
         zoomActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        extSliderFrame.Visible = true -- ИСПРАВЛЕНО: Ползунок появляется только при клике по зуму
     else
         zoomActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
         zoomActionButton.TextColor3 = Color3.fromRGB(0, 220, 255)
+        extSliderFrame.Visible = false -- Скрываем ползунок
     end
 end)
 
@@ -442,7 +473,7 @@ end
 
 local function createToggle(text, env_val, order)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 200, 0, 32); btn.Font = Enum.Font.SourceSansBold; btn.TextSize = 13; btn.BorderSizePixel = 0; btn.LayoutOrder = order; btn.Parent = contentFrame
+    btn.Size = UDim2.new(0, 185, 0, 32); btn.Font = Enum.Font.SourceSansBold; btn.TextSize = 13; btn.BorderSizePixel = 0; btn.LayoutOrder = order; btn.Parent = contentFrame
     local btnCorner = Instance.new("UICorner"); btnCorner.CornerRadius = UDim.new(0, 6); btnCorner.Parent = btn
     
     local function updateVisuals()
@@ -467,6 +498,7 @@ local function createToggle(text, env_val, order)
             if env_val == "zoomButtonEnabled" then
                 zoomActionButton.Visible = false
                 zoomActive = false
+                extSliderFrame.Visible = false
                 zoomActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
             end
             if env_val == "itemEspEnabled" or env_val == "mineEspEnabled" then destroyAllLootGuis() end
@@ -484,29 +516,18 @@ createToggle("🟢 ПНВ КНОПКА", "nvgButtonEnabled", 6)
 createToggle("🔥 ТЕПЛОВИЗОР ФУНКЦИЯ", "thermalButtonEnabled", 7)
 createToggle("🔭 ЗУМ ОПТИКА КНОПКА", "zoomButtonEnabled", 8)
 createToggle("⚡ ФПС БУСТ", "fpsBoostEnabled", 9)
-local sliderLabel = Instance.new("TextLabel")
-sliderLabel.Size = UDim2.new(0, 200, 0, 18); sliderLabel.BackgroundTransparency = 1; sliderLabel.Font = Enum.Font.SourceSansBold; sliderLabel.TextSize = 12; sliderLabel.TextColor3 = Color3.fromRGB(0, 220, 255); sliderLabel.Text = "🔭 КРАТНОСТЬ ЗУМА: 2x"; sliderLabel.LayoutOrder = 10; sliderLabel.Parent = contentFrame
-
-local sliderFrame = Instance.new("Frame")
-sliderFrame.Size = UDim2.new(0, 200, 0, 14); sliderFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45); sliderFrame.LayoutOrder = 11; sliderFrame.Parent = contentFrame
-Instance.new("UICorner", sliderFrame).CornerRadius = UDim.new(0, 4)
-
-local sliderBtn = Instance.new("TextButton")
-sliderBtn.Size = UDim2.new(0, 14, 1, 0); sliderBtn.BackgroundColor3 = Color3.fromRGB(0, 220, 255); sliderBtn.Text = ""; sliderBtn.Parent = sliderFrame
-Instance.new("UICorner", sliderBtn).CornerRadius = UDim.new(0, 4)
-
 local slidingZoom = false
-sliderBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slidingZoom = true end end)
+extSliderBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slidingZoom = true end end)
 inputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slidingZoom = false end end)
 inputService.InputChanged:Connect(function(input)
     if slidingZoom and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local mousePos = input.Position.X; local frameLeft = sliderFrame.AbsolutePosition.X; local frameWidth = sliderFrame.AbsoluteSize.X
+        local mousePos = input.Position.X; local frameLeft = extSliderFrame.AbsolutePosition.X; local frameWidth = extSliderFrame.AbsoluteSize.X
         local percentage = math.clamp((mousePos - frameLeft) / frameWidth, 0, 1)
-        sliderBtn.Position = UDim2.new(percentage * (1 - 14/frameWidth), 0, 0, 0)
+        extSliderBtn.Position = UDim2.new(percentage * (1 - 14/frameWidth), 0, 0, 0)
         
         local calculatedZoom = math.floor(2 + (percentage * 14))
         getgenv().zoomMultiplier = calculatedZoom
-        sliderLabel.Text = "🔭 КРАТНОСТЬ ЗУМА: " .. tostring(calculatedZoom) .. "x"
+        extSliderLabel.Text = "ЗУМ: " .. tostring(calculatedZoom) .. "x"
     end
 end)
 
@@ -591,9 +612,10 @@ task.spawn(function()
         if lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart") then
             for _, descendant in pairs(workspace:GetDescendants()) do
                 local nameLower = string.lower(descendant.Name)
-                local isLoot = string.find(nameLower, "aurora") or string.find(nameLower, "case") or string.find(nameLower, "safe") or string.find(nameLower, "сейф") or string.find(nameLower, "box")
-                local isMine = string.find(nameLower, "mine") or string.find(nameLower, "landmine") or string.find(nameLower, "tripwire") or string.find(nameLower, "мина") or string.find(nameLower, "растяжка")
-                local isDrop = string.find(nameLower, "drop") or string.find(nameLower, "airdrop") or string.find(nameLower, "supply")
+                -- ИСПРАВЛЕНО: Считаем за лут/кейс, если название НАЧИНАЕТСЯ с этих ключевых слов (string.sub == 1)
+                local isLoot = string.find(nameLower, "^aurora") or string.find(nameLower, "^case") or string.find(nameLower, "^safe") or string.find(nameLower, "^сейф") or string.find(nameLower, "^box")
+                local isMine = string.find(nameLower, "^mine") or string.find(nameLower, "^landmine") or string.find(nameLower, "^tripwire") or string.find(nameLower, "^мина") or string.find(nameLower, "^растяжка")
+                local isDrop = string.find(nameLower, "^drop") or string.find(nameLower, "^airdrop") or string.find(nameLower, "^supply")
                 if (isLoot and getgenv().itemEspEnabled) or (isMine and getgenv().mineEspEnabled) or (isDrop and getgenv().itemEspEnabled) then
                     local p = descendant:IsA("BasePart") and descendant or descendant:FindFirstChildWhichIsA("BasePart")
                     if p then
@@ -607,8 +629,8 @@ task.spawn(function()
                             local cleanName = "📦 ОБЪЕКТ"
                             if isMine then cleanName = "💥 МИНА / РАСТЯЖКА"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
                             elseif isDrop then cleanName = "✈️ АИРДРОП"; b.TextLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
-                            elseif string.find(nameLower, "aurora") then cleanName = "✨ АВРОРА КЕЙС"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
-                            elseif string.find(nameLower, "safe") or string.find(nameLower, "сейф") then cleanName = "🗄️ СЕЙФ"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 165, 0)
+                            elseif string.find(nameLower, "^aurora") then cleanName = "✨ АВРОРА КЕЙС"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+                            elseif string.find(nameLower, "^safe") or string.find(nameLower, "^сейф") then cleanName = "🗄️ СЕЙФ"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 165, 0)
                             else cleanName = "🎁 КЕЙС / ЯЩИК"; b.TextLabel.TextColor3 = Color3.fromRGB(0, 255, 100) end
                             b.TextLabel.Text = cleanName .. " [" .. tostring(dist) .. "m]"
                         else
@@ -622,6 +644,4 @@ task.spawn(function()
         task.wait(1.0)
     end
 end)
-for _, v in pairs(workspace:GetDescendants()) do pcall(function() applyLightESP(v)
-        end) 
-end
+for _, v in pairs(workspace:GetDescendants()) do pcall(function() applyLightESP(v) end) end
