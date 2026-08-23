@@ -3,11 +3,13 @@ getgenv().corpseEspEnabled = true
 getgenv().itemEspEnabled = true
 getgenv().mineEspEnabled = true
 getgenv().aimbotEnabled = true
-getgenv().aimbotMaxDist = 300
+getgenv().aimbotMaxDist = 1000
 getgenv().aimbotFov = 120
 getgenv().showFovCircle = true
 getgenv().nvgButtonEnabled = false
+getgenv().thermalEnabled = false
 getgenv().fpsBoostEnabled = false
+getgenv().zoomMultiplier = 1
 
 local lPlr = game:GetService("Players").LocalPlayer
 local cam = workspace.CurrentCamera
@@ -15,6 +17,7 @@ local runService = game:GetService("RunService")
 local tweenService = game:GetService("TweenService")
 local lighting = game:GetService("Lighting")
 local inputService = game:GetService("UserInputService")
+local soundService = game:GetService("SoundService")
 
 local fovCircle = Drawing.new("Circle")
 fovCircle.Visible = getgenv().showFovCircle
@@ -29,10 +32,9 @@ screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 if syn and syn.protect_gui then syn.protect_gui(screenGui) end
 screenGui.Parent = game:GetService("CoreGui") or lPlr:WaitForChild("PlayerGui")
-
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 200, 0, 370)
+mainFrame.Size = UDim2.new(0, 200, 0, 480)
 mainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.BorderSizePixel = 0
@@ -86,11 +88,9 @@ local function createConfigButton(text, fovVal, distVal, order)
     btn.Text = text
     btn.LayoutOrder = order
     btn.Parent = subFrame
-    
     local c = Instance.new("UICorner")
     c.CornerRadius = UDim.new(0, 4)
     c.Parent = btn
-    
     btn.MouseButton1Click:Connect(function()
         getgenv().aimbotFov = fovVal
         getgenv().aimbotMaxDist = distVal
@@ -100,9 +100,21 @@ local function createConfigButton(text, fovVal, distVal, order)
 end
 
 createConfigButton("Предел: ЛЕГИТ (FOV 60 / 150m)", 60, 150, 1)
-createConfigButton("Предел: СРЕДНИЙ (FOV 120 / 300m)", 120, 300, 2)
-createConfigButton("Предел: ЖЕСТКИЙ (FOV 250 / 600m)", 250, 600, 3)
+createConfigButton("Предел: СРЕДНИЙ (FOV 120 / 400m)", 120, 400, 2)
+createConfigButton("Предел: МАКСИМУМ (FOV 250 / 1000m)", 250, 1000, 3)
 
+local function getAllCharacters()
+    local list = {}
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then table.insert(list, v) end
+    end
+    return list
+end
+
+local function playHitSound()
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://9114223193"; sound.Volume = 0.4; sound.PlayOnRemove = true; sound.Parent = soundService; sound:Destroy()
+end
 local fovToggleBtn = Instance.new("TextButton")
 fovToggleBtn.Size = UDim2.new(0, 170, 0, 30)
 fovToggleBtn.Font = Enum.Font.SourceSansBold
@@ -140,6 +152,10 @@ local titleCorner = Instance.new("UICorner")
 titleCorner.CornerRadius = UDim.new(0, 8)
 titleCorner.Parent = titleBar
 
+local bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand"}
+local wallCheckCache = {}
+local lastCacheReset = os.clock()
+local targetHealthTracker = {}
 local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(0.8, 0, 1, 0)
 titleText.Position = UDim2.new(0.05, 0, 0, 0)
@@ -154,27 +170,17 @@ titleText.Parent = titleBar
 local dragging, dragInput, dragStart, startPos
 titleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
+        dragging = true; dragStart = input.Position; startPos = mainFrame.Position
+        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
     end
 end)
-titleBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-end)
+titleBar.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
 inputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         local delta = input.Position - dragStart
         mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-
-local bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand"}
-local wallCheckCache = {}
-local lastCacheReset = os.clock()
 
 local function getBestVisibleBone(character)
     if not character or not lPlr.Character then return nil end
@@ -194,13 +200,33 @@ local function getBestVisibleBone(character)
             local direction = part.Position - origin
             local cast = workspace:Raycast(origin, direction, rayParams)
             if not cast or cast.Instance.CanCollide == false or cast.Instance.Transparency > 0.7 then
-                wallCheckCache[character] = part
-                return part
+                wallCheckCache[character] = part; return part
             end
         end
     end
-    wallCheckCache[character] = false
-    return nil
+    wallCheckCache[character] = false; return nil
+end
+
+local function getTargetData()
+    local bestPart = nil; local shortestFovDist = math.huge; local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
+    if not myHrp then return nil, nil end
+    for _, v in pairs(getAllCharacters()) do
+        if v.Name ~= lPlr.Name and v.Humanoid.Health > 0 then
+            local visiblePart = getBestVisibleBone(v)
+            if visiblePart then
+                local screenPos, onScreen = cam:WorldToViewportPoint(visiblePart.Position)
+                if onScreen then
+                    local worldDist = (myHrp.Position - visiblePart.Position).Magnitude
+                    if worldDist <= getgenv().aimbotMaxDist then
+                        local mousePos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+                        local fovDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                        if fovDist <= getgenv().aimbotFov and fovDist < shortestFovDist then shortestFovDist = fovDist; bestPart = visiblePart end
+                    end
+                end
+            end
+        end
+    end
+    return bestPart, shortestFovDist
 end
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
@@ -214,7 +240,7 @@ minimizeBtn.Parent = titleBar
 
 local contentFrame = Instance.new("Frame")
 contentFrame.Name = "Content"
-contentFrame.Size = UDim2.new(1, 0, 0, 335)
+contentFrame.Size = UDim2.new(1, 0, 0, 440)
 contentFrame.Position = UDim2.new(0, 0, 0, 35)
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
@@ -229,15 +255,9 @@ local isMinimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
-        contentFrame.Visible = false
-        subFrame.Visible = false
-        mainFrame.Size = UDim2.new(0, 200, 0, 35)
-        minimizeBtn.Text = "+"
+        contentFrame.Visible = false; subFrame.Visible = false; mainFrame.Size = UDim2.new(0, 200, 0, 35); minimizeBtn.Text = "+"
     else
-        contentFrame.Visible = true
-        subFrame.Visible = getgenv().aimbotEnabled
-        mainFrame.Size = UDim2.new(0, 200, 0, 370)
-        minimizeBtn.Text = "—"
+        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 200, 0, 480); minimizeBtn.Text = "—"
     end
 end)
 
@@ -253,10 +273,7 @@ actionButton.Text = "NVG"
 actionButton.Visible = false
 actionButton.Parent = screenGui
 
-local actCorner = Instance.new("UICorner")
-actCorner.CornerRadius = UDim.new(1, 0)
-actCorner.Parent = actionButton
-
+Instance.new("UICorner", actionButton).CornerRadius = UDim.new(1, 0)
 local actStroke = Instance.new("UIStroke")
 actStroke.Color = Color3.fromRGB(0, 255, 0)
 actStroke.Thickness = 2
@@ -265,244 +282,198 @@ actStroke.Parent = actionButton
 local btnDragging, btnDragInput, btnDragStart, btnStartPos
 actionButton.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        btnDragging = true
-        btnDragStart = input.Position
-        btnStartPos = actionButton.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then btnDragging = false end
-        end)
+        btnDragging = true; btnDragStart = input.Position; btnStartPos = actionButton.Position
+        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then btnDragging = false end end)
     end
 end)
-actionButton.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then btnDragInput = input end
-end)
+actionButton.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then btnDragInput = input end end)
 inputService.InputChanged:Connect(function(input)
     if input == btnDragInput and btnDragging then
         local delta = input.Position - btnDragStart
         actionButton.Position = UDim2.new(btnStartPos.X.Scale, btnStartPos.X.Offset + delta.X, btnStartPos.Y.Scale, btnStartPos.Y.Offset + delta.Y)
     end
 end)
-
-local nvgActive = false
-local origAmbient, origOutdoor, origColorCorr
+local nvgActive = false; local origAmbient, origOutdoor, origColorCorr
 local function turnOffNvg()
-    nvgActive = false
-    actionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    actionButton.TextColor3 = Color3.fromRGB(0, 255, 0)
-    if origAmbient then lighting.Ambient = origAmbient end
-    if origOutdoor then lighting.OutdoorAmbient = origOutdoor end
+    nvgActive = false; actionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30); actionButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+    if origAmbient then lighting.Ambient = origAmbient end; if origOutdoor then lighting.OutdoorAmbient = origOutdoor end
     local cc = lighting:FindFirstChildOfClass("ColorCorrectionEffect")
-    if cc and origColorCorr then cc.TintColor = origColorCorr.TintColor cc.Brightness = origColorCorr.Brightness end
+    if cc and origColorCorr then cc.TintColor = origColorCorr.TintColor; cc.Brightness = origColorCorr.Brightness end
 end
 
 actionButton.MouseButton1Click:Connect(function()
     nvgActive = not nvgActive
     if nvgActive then
-        actionButton.BackgroundColor3 = Color3.fromRGB(0, 80, 0)
-        actionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        origAmbient = lighting.Ambient
-        origOutdoor = lighting.OutdoorAmbient
-        lighting.Ambient = Color3.fromRGB(100, 255, 100)
-        lighting.OutdoorAmbient = Color3.fromRGB(100, 255, 100)
+        actionButton.BackgroundColor3 = Color3.fromRGB(0, 80, 0); actionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        origAmbient = lighting.Ambient; origOutdoor = lighting.OutdoorAmbient
+        if getgenv().thermalEnabled then lighting.Ambient = Color3.fromRGB(10, 20, 80); lighting.OutdoorAmbient = Color3.fromRGB(10, 15, 60)
+        else lighting.Ambient = Color3.fromRGB(100, 255, 100); lighting.OutdoorAmbient = Color3.fromRGB(100, 255, 100) end
         local cc = lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect", lighting)
         origColorCorr = {TintColor = cc.TintColor, Brightness = cc.Brightness}
-        cc.TintColor = Color3.fromRGB(120, 255, 120)
-        cc.Brightness = 0.2
-    else
-        turnOffNvg()
-    end
+        cc.TintColor = getgenv().thermalEnabled and Color3.fromRGB(100, 150, 255) or Color3.fromRGB(120, 255, 120); cc.Brightness = 0.2
+    else turnOffNvg() end
 end)
 
-local backupEffects = {}
-local origShadows = lighting.GlobalShadows
+local backupEffects = {}; local origShadows = lighting.GlobalShadows
 local function toggleFpsBoost(enable)
     lighting.GlobalShadows = not enable
     if enable then
         for _, effect in pairs(lighting:GetChildren()) do
             if effect:IsA("BlurEffect") or effect:IsA("SunRaysEffect") or effect:IsA("Sky") or effect:IsA("Clouds") or effect:IsA("Atmosphere") then
-                table.insert(backupEffects, {effect = effect, parent = effect.Parent})
-                effect.Parent = nil
+                table.insert(backupEffects, {effect = effect, parent = effect.Parent}); effect.Parent = nil
             end
         end
     else
         lighting.GlobalShadows = origShadows
-        for _, data in pairs(backupEffects) do if data.effect then data.effect.Parent = data.parent end end
-        table.clear(backupEffects)
+        for _, data in pairs(backupEffects) do if data.effect then data.effect.Parent = data.parent end end; table.clear(backupEffects)
     end
 end
 
 local function destroyAllLootGuis()
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("BillboardGui") and (v.Name == "LootTextGui" or v.Name == "MineTextGui") then v:Destroy() end
-    end
+    for _, v in pairs(workspace:GetDescendants()) do if v:IsA("BillboardGui") and (v.Name == "LootTextGui" or v.Name == "MineTextGui") then v:Destroy() end end
 end
 
 local function createToggle(text, env_val, order)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 180, 0, 35)
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 13
-    btn.BorderSizePixel = 0
-    btn.LayoutOrder = order
-    btn.Parent = contentFrame
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 6)
-    btnCorner.Parent = btn
+    btn.Size = UDim2.new(0, 180, 0, 32); btn.Font = Enum.Font.SourceSansBold; btn.TextSize = 13; btn.BorderSizePixel = 0; btn.LayoutOrder = order; btn.Parent = contentFrame
+    local btnCorner = Instance.new("UICorner"); btnCorner.CornerRadius = UDim.new(0, 6); btnCorner.Parent = btn
     local function updateVisuals()
         if getgenv()[env_val] then
-            btn.BackgroundColor3 = Color3.fromRGB(34, 139, 34)
-            btn.Text = text .. ": ВКЛ"
-            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.BackgroundColor3 = Color3.fromRGB(34, 139, 34); btn.Text = text .. ": ВКЛ"; btn.TextColor3 = Color3.fromRGB(255, 255, 255)
             if env_val == "aimbotEnabled" and not isMinimized then subFrame.Visible = true end
             if env_val == "nvgButtonEnabled" then actionButton.Visible = true end
             if env_val == "fpsBoostEnabled" then toggleFpsBoost(true) end
         else
-            btn.BackgroundColor3 = Color3.fromRGB(139, 0, 0)
-            btn.Text = text .. ": ВЫКЛ"
-            btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+            btn.BackgroundColor3 = Color3.fromRGB(139, 0, 0); btn.Text = text .. ": ВЫКЛ"; btn.TextColor3 = Color3.fromRGB(200, 200, 200)
             if env_val == "aimbotEnabled" then subFrame.Visible = false end
             if env_val == "fpsBoostEnabled" then toggleFpsBoost(false) end
-            if env_val == "nvgButtonEnabled" then 
-                actionButton.Visible = false 
-                if nvgActive then turnOffNvg() end 
-            end
+            if env_val == "nvgButtonEnabled" then actionButton.Visible = false; if nvgActive then turnOffNvg() end end
             if env_val == "itemEspEnabled" or env_val == "mineEspEnabled" then destroyAllLootGuis() end
         end
     end
-    updateVisuals()
-    btn.MouseButton1Click:Connect(function() getgenv()[env_val] = not getgenv()[env_val] updateVisuals() end)
+    updateVisuals(); btn.MouseButton1Click:Connect(function() getgenv()[env_val] = not getgenv()[env_val]; updateVisuals() end)
 end
 
 createToggle("🎯 АИМБОТ", "aimbotEnabled", 1)
 createToggle("👤 ESP ИГРОКИ", "espEnabled", 2)
 createToggle("💀 ESP ТРУПЫ", "corpseEspEnabled", 3)
-createToggle("📦 ESP ЛУТ (КЕЙСЫ)", "itemEspEnabled", 4)
+createToggle("📦 ESP ЛУТ / КЕЙСЫ", "itemEspEnabled", 4)
 createToggle("💥 ESP МИНЫ", "mineEspEnabled", 5)
 createToggle("🟢 ПНВ КНОПКА", "nvgButtonEnabled", 6)
-createToggle("⚡ ФПС БУСТ", "fpsBoostEnabled", 7)
-local function getTargetData()
-    local bestPart = nil
-    local shortestFovDist = math.huge
-    local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
-    if not myHrp then return nil, nil end
-    for _, v in pairs(workspace:GetChildren()) do
-        if v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Name ~= lPlr.Name then
-            if v.Humanoid.Health > 0 then
-                local visiblePart = getBestVisibleBone(v)
-                if visiblePart then
-                    local screenPos, onScreen = cam:WorldToViewportPoint(visiblePart.Position)
-                    if onScreen then
-                        local worldDist = (myHrp.Position - visiblePart.Position).Magnitude
-                        if worldDist <= getgenv().aimbotMaxDist then
-                            local mousePos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
-                            local fovDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                            if fovDist <= getgenv().aimbotFov and fovDist < shortestFovDist then
-                                shortestFovDist = fovDist
-                                bestPart = visiblePart
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return bestPart, shortestFovDist
-end
+createToggle("🔥 ТЕПЛОВИЗОР МУД", "thermalEnabled", 7)
+createToggle("⚡ ФПС БУСТ", "fpsBoostEnabled", 8)
 
-local lastAimTime = 0
-runService.RenderStepped:Connect(function()
-    fovCircle.Visible = getgenv().showFovCircle and getgenv().aimbotEnabled
-    if fovCircle.Visible then
-        fovCircle.Position = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
-        fovCircle.Radius = getgenv().aimbotFov
+local sliderLabel = Instance.new("TextLabel")
+sliderLabel.Size = UDim2.new(0, 180, 0, 18); sliderLabel.BackgroundTransparency = 1; sliderLabel.Font = Enum.Font.SourceSansBold; sliderLabel.TextSize = 12; sliderLabel.TextColor3 = Color3.fromRGB(0, 255, 150); sliderLabel.Text = "🔭 ОПТИКА ЗУМ: 1x (ВЫКЛ)"; sliderLabel.LayoutOrder = 9; sliderLabel.Parent = contentFrame
+
+local sliderFrame = Instance.new("Frame")
+sliderFrame.Size = UDim2.new(0, 180, 0, 14); sliderFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45); sliderFrame.LayoutOrder = 10; sliderFrame.Parent = contentFrame
+Instance.new("UICorner", sliderFrame).CornerRadius = UDim.new(0, 4)
+
+local sliderBtn = Instance.new("TextButton")
+sliderBtn.Size = UDim2.new(0, 14, 1, 0); sliderBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 150); sliderBtn.Text = ""; sliderBtn.Parent = sliderFrame
+Instance.new("UICorner", sliderBtn).CornerRadius = UDim.new(0, 4)
+
+local slidingZoom = false
+sliderBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slidingZoom = true end end)
+inputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slidingZoom = false end end)
+inputService.InputChanged:Connect(function(input)
+    if slidingZoom and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local mousePos = input.Position.X; local frameLeft = sliderFrame.AbsolutePosition.X; local frameWidth = sliderFrame.AbsoluteSize.X
+        local percentage = math.clamp((mousePos - frameLeft) / frameWidth, 0, 1)
+        sliderBtn.Position = UDim2.new(percentage * (1 - 14/frameWidth), 0, 0, 0)
+        local calculatedZoom = math.floor(1 + (percentage * 9))
+        getgenv().zoomMultiplier = calculatedZoom
+        sliderLabel.Text = calculatedZoom == 1 and "🔭 ОПТИКА ЗУМ: 1x (ВЫКЛ)" or "🔭 ОПТИКА ЗУМ: " .. tostring(calculatedZoom) .. "x"
     end
-    local now = os.clock()
-    if getgenv().aimbotEnabled and (now - lastAimTime > 0.01) then
-        lastAimTime = now
+end)
+runService.RenderStepped:Connect(function()
+    cam.FieldOfView = cam.FieldOfView + ((70 / getgenv().zoomMultiplier) - cam.FieldOfView) * 0.2
+    fovCircle.Visible = getgenv().showFovCircle and getgenv().aimbotEnabled
+    if fovCircle.Visible then fovCircle.Position = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2); fovCircle.Radius = getgenv().aimbotFov end
+    if getgenv().aimbotEnabled and (os.clock() - lastAimTime > 0.01) then
+        lastAimTime = os.clock()
         local targetPart, fovDist = getTargetData()
         if targetPart and fovDist then
+            local enemyHrp = targetPart.Parent:FindFirstChild("HumanoidRootPart")
+            local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
+            local finalPos = targetPart.Position
+            if enemyHrp and myHrp then finalPos = targetPart.Position + (enemyHrp.Velocity * ((myHrp.Position - targetPart.Position).Magnitude / 900)) end
             local fovRatio = 1 - (fovDist / getgenv().aimbotFov)
-            local baseLerp = 0.12
-            local maxLerp = 0.45
-            local dynamicAlpha = baseLerp + (maxLerp - baseLerp) * fovRatio
-            local targetCFrame = CFrame.new(cam.CFrame.Position, targetPart.Position)
-            cam.CFrame = cam.CFrame:Lerp(targetCFrame, dynamicAlpha)
+            cam.CFrame = cam.CFrame:Lerp(CFrame.new(cam.CFrame.Position, finalPos), 0.12 + (0.33 * fovRatio))
         end
     end
 end)
-
-local function applyLightESP(model)
-    if not model or not model.Parent then return end
-    if model:FindFirstChild("Humanoid") and model:FindFirstChild("HumanoidRootPart") then
-        if model.Name == lPlr.Name then return end
-        local hrp = model.HumanoidRootPart
-        local hl = model:FindFirstChild("MobileESP") or Instance.new("Highlight")
-        if not hl.Parent then hl.Name = "MobileESP" hl.Parent = model hl.FillTransparency = 1 hl.OutlineTransparency = 0 end
-        local bGui = hrp:FindFirstChild("TextEspGui") or Instance.new("BillboardGui")
-        if not bGui.Parent then
-            bGui.Name = "TextEspGui" bGui.AlwaysOnTop = true bGui.Size = UDim2.new(0, 100, 0, 25) bGui.StudsOffset = Vector3.new(0, 3, 0) bGui.Parent = hrp
-            local txt = Instance.new("TextLabel") txt.Size = UDim2.new(1, 0, 1, 0) txt.BackgroundTransparency = 1 txt.TextSize = 13 txt.Font = Enum.Font.SourceSansBold txt.Parent = bGui
-            task.spawn(function()
-                local lastUpdate = 0
-                while model and model.Parent and hrp and txt and bGui and hl do
-                    local tickNow = os.clock()
-                    if tickNow - lastUpdate > 0.3 then
-                        lastUpdate = tickNow
-                        local isDead = model.Humanoid.Health <= 0
-                        local state = isDead and getgenv().corpseEspEnabled or getgenv().espEnabled
-                        hl.Enabled, bGui.Enabled = state, state
-                        if state then
-                            local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
-                            if myHrp then
-                                local d = math.floor((myHrp.Position - hrp.Position).Magnitude)
-                                local visiblePart = getBestVisibleBone(model)
-                                local base = isDead and "[ТРУП]" or game.Players:FindFirstChild(model.Name) and "[ИГРОК]" or "[БОТ]"
-                                local c = isDead and Color3.fromRGB(150, 150, 150) or visiblePart and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-                                hl.OutlineColor, txt.TextColor3 = c, c
-                                txt.Text = base .. " " .. tostring(d) .. "m"
-                                txt.Visible = true
-                            else txt.Visible = false end
-                        else txt.Visible = false end
-                    end
-                    task.wait(0.2)
-                end
-            end)
+local function applyLightESP(m)
+    if not m or not m.Parent or not m:IsA("Model") or not m:FindFirstChild("Humanoid") or not m:FindFirstChild("HumanoidRootPart") or m.Name == lPlr.Name then return end
+    local hrp, hum = m.HumanoidRootPart, m.Humanoid; targetHealthTracker[m] = hum.Health
+    hum.HealthChanged:Connect(function(nh)
+        local oh = targetHealthTracker[m] or nh
+        if nh < oh and getgenv().aimbotEnabled and m:FindFirstChild("Head") then
+            local screenPos, onScreen = cam:WorldToViewportPoint(m.Head.Position)
+            if onScreen and (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)).Magnitude <= getgenv().aimbotFov then playHitSound() end
         end
+        targetHealthTracker[m] = nh
+    end)
+    local hl = m:FindFirstChild("MobileESP") or Instance.new("Highlight")
+    if not hl.Parent then hl.Name = "MobileESP"; hl.Parent = m; hl.FillTransparency = 1; hl.OutlineTransparency = 0 end
+    local bGui = hrp:FindFirstChild("TextEspGui") or Instance.new("BillboardGui")
+    if not bGui.Parent then
+        bGui.Name = "TextEspGui"; bGui.AlwaysOnTop = true; bGui.MaxDistance = 4000; bGui.Size = UDim2.new(0, 140, 0, 25); bGui.StudsOffset = Vector3.new(0, 3, 0); bGui.Parent = hrp
+        local txt = Instance.new("TextLabel", bGui); txt.Size = UDim2.new(1, 0, 1, 0); txt.BackgroundTransparency = 1; txt.TextSize = 13; txt.Font = Enum.Font.SourceSansBold
+        task.spawn(function()
+            while m and m.Parent and hrp and txt and bGui and hl do
+                local isDead = hum.Health <= 0; local state = isDead and getgenv().corpseEspEnabled or getgenv().espEnabled
+                hl.Enabled, bGui.Enabled = state, state
+                if state and lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart") then
+                    local d = math.floor((lPlr.Character.HumanoidRootPart.Position - hrp.Position).Magnitude)
+                    if d <= 4000 then
+                        local isReal = game.Players:FindFirstChild(m.Name) ~= nil; local base = isDead and "[ТРУП]" or isReal and "[ИГРОК]" or "[БОТ / ДИКИЙ]"
+                        local c = isDead and Color3.fromRGB(150, 150, 150) or getBestVisibleBone(m) and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+                        if getgenv().thermalEnabled and nvgActive and not isDead then hl.FillColor = Color3.fromRGB(255, 60, 0); hl.FillTransparency = 0.3; c = Color3.fromRGB(255, 200, 0) else hl.FillTransparency = 1 end
+                        hl.OutlineColor, txt.TextColor3 = c, c; txt.Text = base .. " " .. tostring(d) .. "m" .. (isDead and "" or " [" .. math.floor(hum.Health) .. " HP]"); txt.Visible = true
+                    else txt.Visible = false end
+                else txt.Visible = false end
+                task.wait(0.3)
+            end
+        end)
     end
 end
-
-workspace.ChildAdded:Connect(applyLightESP)
+workspace.DescendantAdded:Connect(applyLightESP)
 task.spawn(function()
     while true do
-        if getgenv().itemEspEnabled then
-            local mapFolder = workspace:FindFirstChild("Map") or workspace
-            for _, descendant in pairs(mapFolder:GetDescendants()) do
-                if descendant.Name == "AuroraBox" or descendant.Name == "BigBox" or string.find(string.lower(descendant.Name), "safe") or string.find(string.lower(descendant.Name), "сейф") then
-                    local p = descendant:IsA("BasePart") and descendant or descendant:FindFirstChild("Part") or descendant:FindFirstChildWhichIsA("BasePart")
-                    if p and not p:FindFirstChild("LootTextGui") and getgenv().itemEspEnabled then
-                        local b = Instance.new("BillboardGui") b.Name = "LootTextGui" b.AlwaysOnTop = true b.Size = UDim2.new(0, 130, 0, 25) b.StudsOffset = Vector3.new(0, 2, 0) b.Parent = p
-                        local t = Instance.new("TextLabel") t.Size = UDim2.new(1, 0, 1, 0) t.BackgroundTransparency = 0.3 t.BackgroundColor3 = Color3.fromRGB(20, 20, 20) t.TextColor3 = Color3.fromRGB(255, 215, 0) t.TextSize = 11 t.Font = Enum.Font.SourceSansBold t.Parent = b
-                        local cleanName = descendant.Name == "AuroraBox" and "✨ АВРОРА КЕЙС" or descendant.Name == "BigBox" and "🎁 БОЛЬШОЙ КЕЙС" or (string.find(string.lower(descendant.Name), "safe") or string.find(string.lower(descendant.Name), "сейф")) and "🗄️ СЕЙФ" or "📦 ЛУТ / ЯЩИК"
-                        t.Text = cleanName Instance.new("UICorner").CornerRadius = UDim.new(0, 6) t.Parent = t
-                    end
-                    if p and p:FindFirstChild("LootTextGui") and getgenv().itemEspEnabled then
-                        local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
-                        if myHrp then
-                            local cleanName = descendant.Name == "AuroraBox" and "✨ АВРОРА КЕЙС" or descendant.Name == "BigBox" and "🎁 БОЛЬШОЙ КЕЙС" or (string.find(string.lower(descendant.Name), "safe") or string.find(string.lower(descendant.Name), "сейф")) and "🗄️ СЕЙФ" or "📦 ЛУТ / ЯЩИК"
-                            p.LootTextGui.TextLabel.Text = cleanName .. " [" .. tostring(math.floor((myHrp.Position - p.Position).Magnitude)) .. "m]"
+        if lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart") then
+            for _, descendant in pairs(workspace:GetDescendants()) do
+                local nameLower = string.lower(descendant.Name)
+                local isLoot = string.find(nameLower, "aurora") or string.find(nameLower, "case") or string.find(nameLower, "safe") or string.find(nameLower, "сейф") or string.find(nameLower, "box")
+                local isMine = string.find(nameLower, "mine") or string.find(nameLower, "landmine") or string.find(nameLower, "tripwire") or string.find(nameLower, "мина") or string.find(nameLower, "растяжка")
+                local isDrop = string.find(nameLower, "drop") or string.find(nameLower, "airdrop") or string.find(nameLower, "supply")
+                if (isLoot and getgenv().itemEspEnabled) or (isMine and getgenv().mineEspEnabled) or (isDrop and getgenv().itemEspEnabled) then
+                    local p = descendant:IsA("BasePart") and descendant or descendant:FindFirstChildWhichIsA("BasePart")
+                    if p then
+                        local dist = math.floor((lPlr.Character.HumanoidRootPart.Position - p.Position).Magnitude)
+                        if dist <= 4000 then
+                            local guiName = isMine and "MineTextGui" or "LootTextGui"; local b = p:FindFirstChild(guiName)
+                            if not b then
+                                b = Instance.new("BillboardGui", p); b.Name = guiName; b.AlwaysOnTop = true; b.MaxDistance = 4000; b.Size = UDim2.new(0, 140, 0, 25); b.StudsOffset = Vector3.new(0, 2, 0)
+                                local t = Instance.new("TextLabel", b); t.Size = UDim2.new(1, 0, 1, 0); t.BackgroundTransparency = 0.3; t.BackgroundColor3 = Color3.fromRGB(20, 20, 20); t.TextSize = 11; t.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", t).CornerRadius = UDim.new(0, 6)
+                            end
+                            local cleanName = "📦 ОБЪЕКТ"
+                            if isMine then cleanName = "💥 МИНА / РАСТЯЖКА"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+                            elseif isDrop then cleanName = "✈️ АИРДРОП"; b.TextLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+                            elseif string.find(nameLower, "aurora") then cleanName = "✨ АВРОРА КЕЙС"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+                            elseif string.find(nameLower, "safe") or string.find(nameLower, "сейф") then cleanName = "🗄️ СЕЙФ"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 165, 0)
+                            else cleanName = "🎁 КЕЙС / ЯЩИК"; b.TextLabel.TextColor3 = Color3.fromRGB(0, 255, 100) end
+                            b.TextLabel.Text = cleanName .. " [" .. tostring(dist) .. "m]"
+                        else
+                            if p:FindFirstChild("LootTextGui") then p.LootTextGui:Destroy() end
+                            if p:FindFirstChild("MineTextGui") then p.MineTextGui:Destroy() end
                         end
                     end
                 end
             end
         end
-        task.wait(0.7)
+        task.wait(1.0)
     end
 end)
-
-task.spawn(function()
-    local objects = workspace:GetChildren()
-    for i, v in ipairs(objects) do
-        pcall(function() applyLightESP(v) end)
-        if i % 100 == 0 then task.wait(0.01) end
-    end
-end)
+for _, v in pairs(workspace:GetDescendants()) do pcall(function() applyLightESP(v) end) end
