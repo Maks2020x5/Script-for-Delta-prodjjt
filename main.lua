@@ -1,7 +1,6 @@
 getgenv().espEnabled = true
 getgenv().corpseEspEnabled = true
 getgenv().itemEspEnabled = true
-getgenv().mineEspEnabled = true
 getgenv().aimbotEnabled = true
 getgenv().aimbotMaxDist = 1000
 getgenv().aimbotFov = 120
@@ -38,12 +37,14 @@ screenGui.Parent = game:GetService("CoreGui") or lPlr:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
+-- ИСПРАВЛЕНО: ГУИ расширено в 2 раза (было 200, стало 400 по оси X)
 mainFrame.Size = UDim2.new(0, 400, 0, 420)
 mainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = false
 mainFrame.Parent = screenGui
+
 local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 8)
 mainCorner.Parent = mainFrame
@@ -119,6 +120,7 @@ local function playHitSound()
     local sound = Instance.new("Sound")
     sound.SoundId = "rbxassetid://9114223193"; sound.Volume = 0.4; sound.PlayOnRemove = true; sound.Parent = soundService; sound:Destroy()
 end
+
 local fovToggleBtn = Instance.new("TextButton")
 fovToggleBtn.Size = UDim2.new(0, 170, 0, 30)
 fovToggleBtn.Font = Enum.Font.SourceSansBold
@@ -171,7 +173,6 @@ titleText.TextSize = 14
 titleText.Font = Enum.Font.SourceSansBold
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = titleBar
-
 local dragging, dragInput, dragStart, startPos
 titleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -186,6 +187,7 @@ inputService.InputChanged:Connect(function(input)
         mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
+
 local function getBestVisibleBone(character)
     if not character or not lPlr.Character then return nil end
     local now = os.clock()
@@ -249,6 +251,7 @@ contentFrame.Size = UDim2.new(1, 0, 0, 380)
 contentFrame.Position = UDim2.new(0, 0, 0, 35)
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
+
 local layout = Instance.new("UIGridLayout")
 layout.Padding = UDim2.new(0, 10, 0, 10)
 layout.CellSize = UDim2.new(0, 185, 0, 32)
@@ -317,6 +320,7 @@ thrmStroke.Color = Color3.fromRGB(255, 100, 0)
 thrmStroke.Thickness = 2
 thrmStroke.Parent = thermalActionButton
 makeButtonDraggable(thermalActionButton)
+
 local zoomActionButton = Instance.new("TextButton")
 zoomActionButton.Name = "ZoomScreenButton"
 zoomActionButton.Size = UDim2.new(0, 55, 0, 55)
@@ -335,10 +339,11 @@ zoomStroke.Thickness = 2
 zoomStroke.Parent = zoomActionButton
 makeButtonDraggable(zoomActionButton)
 
+-- ИСПРАВЛЕНО: Элементы ползунка создаются на экране и привязаны к кнопке ZOOM
 local extSliderFrame = Instance.new("Frame")
 extSliderFrame.Name = "ExtSliderFrame"
 extSliderFrame.Size = UDim2.new(0, 130, 0, 14)
-extSliderFrame.Position = UDim2.new(0, -140, 0, 20)
+extSliderFrame.Position = UDim2.new(0, -140, 0, 20) -- Слева от кнопки ZOOM
 extSliderFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 extSliderFrame.Visible = false
 extSliderFrame.Parent = zoomActionButton
@@ -394,8 +399,10 @@ actionButton.MouseButton1Click:Connect(function()
         end
         actionButton.BackgroundColor3 = Color3.fromRGB(0, 80, 0); actionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
         if not origAmbient then origAmbient = lighting.Ambient; origOutdoor = lighting.OutdoorAmbient end
+        
         lighting.Ambient = Color3.fromRGB(100, 255, 100)
         lighting.OutdoorAmbient = Color3.fromRGB(100, 255, 100)
+        
         local cc = lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect", lighting)
         if not origColorCorr then origColorCorr = {TintColor = cc.TintColor, Brightness = cc.Brightness, Contrast = cc.Contrast, Saturation = cc.Saturation} end
         cc.TintColor = Color3.fromRGB(120, 255, 120); cc.Brightness = 0.2; cc.Contrast = 0; cc.Saturation = 0
@@ -414,11 +421,16 @@ thermalActionButton.MouseButton1Click:Connect(function()
         end
         thermalActionButton.BackgroundColor3 = Color3.fromRGB(180, 50, 0); thermalActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
         if not origAmbient then origAmbient = lighting.Ambient; origOutdoor = lighting.OutdoorAmbient end
+        
         lighting.Ambient = Color3.fromRGB(15, 20, 60)
         lighting.OutdoorAmbient = Color3.fromRGB(10, 15, 40)
+        
         local cc = lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect", lighting)
         if not origColorCorr then origColorCorr = {TintColor = cc.TintColor, Brightness = cc.Brightness, Contrast = cc.Contrast, Saturation = cc.Saturation} end
-        cc.TintColor = Color3.fromRGB(80, 120, 255); cc.Brightness = 0.1; cc.Contrast = 0.6; cc.Saturation = -0.8
+        cc.TintColor = Color3.fromRGB(80, 120, 255)
+        cc.Brightness = 0.1
+        cc.Contrast = 0.6
+        cc.Saturation = -0.8
     else
         thermalActive = false
         thermalActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -432,11 +444,11 @@ zoomActionButton.MouseButton1Click:Connect(function()
     if zoomActive then
         zoomActionButton.BackgroundColor3 = Color3.fromRGB(0, 120, 150)
         zoomActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        extSliderFrame.Visible = true
+        extSliderFrame.Visible = true -- ИСПРАВЛЕНО: Ползунок появляется только при клике по зуму
     else
         zoomActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
         zoomActionButton.TextColor3 = Color3.fromRGB(0, 220, 255)
-        extSliderFrame.Visible = false
+        extSliderFrame.Visible = false -- Скрываем ползунок
     end
 end)
 
@@ -456,12 +468,14 @@ local function toggleFpsBoost(enable)
 end
 
 local function destroyAllLootGuis()
-    for _, v in pairs(workspace:GetDescendants()) do if v:IsA("BillboardGui") and (v.Name == "LootTextGui" or v.Name == "MineTextGui") then v:Destroy() end end
+    for _, v in pairs(workspace:GetDescendants()) do if v:IsA("BillboardGui") and (v.Name == "LootTextGui") then v:Destroy() end end
 end
+
 local function createToggle(text, env_val, order)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 185, 0, 32); btn.Font = Enum.Font.SourceSansBold; btn.TextSize = 13; btn.BorderSizePixel = 0; btn.LayoutOrder = order; btn.Parent = contentFrame
     local btnCorner = Instance.new("UICorner"); btnCorner.CornerRadius = UDim.new(0, 6); btnCorner.Parent = btn
+    
     local function updateVisuals()
         if getgenv()[env_val] then
             btn.BackgroundColor3 = Color3.fromRGB(34, 139, 34); btn.Text = text .. ": ВКЛ"; btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -476,12 +490,18 @@ local function createToggle(text, env_val, order)
             if env_val == "fpsBoostEnabled" then toggleFpsBoost(false) end
             if env_val == "nvgButtonEnabled" then actionButton.Visible = false; turnOffNvg() end
             if env_val == "thermalButtonEnabled" then 
-                thermalActionButton.Visible = false; thermalActive = false; thermalActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30); resetLightingEffects()
+                thermalActionButton.Visible = false
+                thermalActive = false
+                thermalActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                resetLightingEffects()
             end
             if env_val == "zoomButtonEnabled" then
-                zoomActionButton.Visible = false; zoomActive = false; extSliderFrame.Visible = false; zoomActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                zoomActionButton.Visible = false
+                zoomActive = false
+                extSliderFrame.Visible = false
+                zoomActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
             end
-            if env_val == "itemEspEnabled" or env_val == "mineEspEnabled" then destroyAllLootGuis() end
+            if env_val == "itemEspEnabled" then destroyAllLootGuis() end
         end
     end
     updateVisuals(); btn.MouseButton1Click:Connect(function() getgenv()[env_val] = not getgenv()[env_val]; updateVisuals() end)
@@ -491,12 +511,10 @@ createToggle("🎯 АИМБОТ", "aimbotEnabled", 1)
 createToggle("👤 ESP ИГРОКИ", "espEnabled", 2)
 createToggle("💀 ESP ТРУПЫ", "corpseEspEnabled", 3)
 createToggle("📦 ESP ЛУТ / КЕЙСЫ", "itemEspEnabled", 4)
-createToggle("💥 ESP МИНЫ", "mineEspEnabled", 5)
 createToggle("🟢 ПНВ КНОПКА", "nvgButtonEnabled", 6)
 createToggle("🔥 ТЕПЛОВИЗОР ФУНКЦИЯ", "thermalButtonEnabled", 7)
 createToggle("🔭 ЗУМ ОПТИКА КНОПКА", "zoomButtonEnabled", 8)
 createToggle("⚡ ФПС БУСТ", "fpsBoostEnabled", 9)
-
 local slidingZoom = false
 extSliderBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slidingZoom = true end end)
 inputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slidingZoom = false end end)
@@ -505,6 +523,7 @@ inputService.InputChanged:Connect(function(input)
         local mousePos = input.Position.X; local frameLeft = extSliderFrame.AbsolutePosition.X; local frameWidth = extSliderFrame.AbsoluteSize.X
         local percentage = math.clamp((mousePos - frameLeft) / frameWidth, 0, 1)
         extSliderBtn.Position = UDim2.new(percentage * (1 - 14/frameWidth), 0, 0, 0)
+        
         local calculatedZoom = math.floor(2 + (percentage * 14))
         getgenv().zoomMultiplier = calculatedZoom
         extSliderLabel.Text = "ЗУМ: " .. tostring(calculatedZoom) .. "x"
@@ -514,8 +533,10 @@ end)
 runService.RenderStepped:Connect(function()
     local targetMultiplier = zoomActive and getgenv().zoomMultiplier or 1
     cam.FieldOfView = cam.FieldOfView + ((70 / targetMultiplier) - cam.FieldOfView) * 0.2
+    
     fovCircle.Visible = getgenv().showFovCircle and getgenv().aimbotEnabled
     if fovCircle.Visible then fovCircle.Position = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2); fovCircle.Radius = getgenv().aimbotFov end
+    
     if getgenv().aimbotEnabled and (os.clock() - lastAimTime > 0.01) then
         lastAimTime = os.clock()
         local targetPart, fovDist = getTargetData()
@@ -523,11 +544,18 @@ runService.RenderStepped:Connect(function()
             local enemyHrp = targetPart.Parent:FindFirstChild("HumanoidRootPart")
             local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
             local finalPos = targetPart.Position
+            
             if enemyHrp and myHrp then 
-                local bulletSpeed = 950; local distance = (myHrp.Position - targetPart.Position).Magnitude; local travelTime = distance / bulletSpeed
-                local movePrediction = enemyHrp.Velocity * travelTime; local gravityCorrection = Vector3.new(0, 0.5 * 196.2 * (travelTime ^ 2), 0)
+                local bulletSpeed = 950
+                local distance = (myHrp.Position - targetPart.Position).Magnitude
+                local travelTime = distance / bulletSpeed
+                
+                local movePrediction = enemyHrp.Velocity * travelTime
+                local gravityCorrection = Vector3.new(0, 0.5 * 196.2 * (travelTime ^ 2), 0)
+                
                 finalPos = targetPart.Position + movePrediction + gravityCorrection
             end
+            
             local fovRatio = 1 - (fovDist / getgenv().aimbotFov)
             cam.CFrame = cam.CFrame:Lerp(CFrame.new(cam.CFrame.Position, finalPos), 0.12 + (0.33 * fovRatio))
         end
@@ -560,7 +588,14 @@ local function applyLightESP(m)
                     if d <= 4000 then
                         local isReal = game.Players:FindFirstChild(m.Name) ~= nil; local base = isDead and "[ТРУП]" or isReal and "[ИГРОК]" or "[БОТ / ДИКИЙ]"
                         local c = isDead and Color3.fromRGB(150, 150, 150) or getBestVisibleBone(m) and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-                        if thermalActive and not isDead then hl.FillColor = Color3.fromRGB(255, 80, 0); hl.FillTransparency = 0.25; c = Color3.fromRGB(255, 230, 0) else hl.FillTransparency = 1 end
+                        
+                        if thermalActive and not isDead then 
+                            hl.FillColor = Color3.fromRGB(255, 80, 0)
+                            hl.FillTransparency = 0.25
+                            c = Color3.fromRGB(255, 230, 0) 
+                        else 
+                            hl.FillTransparency = 1 
+                        end
                         hl.OutlineColor, txt.TextColor3 = c, c; txt.Text = base .. " " .. tostring(d) .. "m" .. (isDead and "" or " [" .. math.floor(hum.Health) .. " HP]"); txt.Visible = true
                     else txt.Visible = false end
                 else txt.Visible = false end
@@ -577,14 +612,31 @@ task.spawn(function()
             for _, descendant in pairs(workspace:GetDescendants()) do
                 local nameLower = string.lower(descendant.Name)
                 local isLoot = string.find(nameLower, "^aurora") or string.find(nameLower, "^case") or string.find(nameLower, "^safe") or string.find(nameLower, "^сейф") or string.find(nameLower, "^box")
-                local isMine = string.find(nameLower, "^mine") or string.find(nameLower, "^landmine") or string.find(nameLower, "^tripwire") or string.find(nameLower, "^мина") or string.find(nameLower, "^растяжка")
                 local isDrop = string.find(nameLower, "^drop") or string.find(nameLower, "^airdrop") or string.find(nameLower, "^supply")
-                if (isLoot and getgenv().itemEspEnabled) or (isMine and getgenv().mineEspEnabled) or (isDrop and getgenv().itemEspEnabled) then
+                if (isLoot and getgenv().itemEspEnabled) or (isDrop and getgenv().itemEspEnabled) then
                     local p = descendant:IsA("BasePart") and descendant or descendant:FindFirstChildWhichIsA("BasePart")
                     if p then
                         local dist = math.floor((lPlr.Character.HumanoidRootPart.Position - p.Position).Magnitude)
                         if dist <= 4000 then
-                            local guiName = isMine and "MineTextGui" or "LootTextGui"; local b = p:FindFirstChild(guiName)
+                            local guiName = "LootTextGui"; local b = p:FindFirstChild(guiName)
                             if not b then
                                 b = Instance.new("BillboardGui", p); b.Name = guiName; b.AlwaysOnTop = true; b.MaxDistance = 4000; b.Size = UDim2.new(0, 140, 0, 25); b.StudsOffset = Vector3.new(0, 2, 0)
-local t = Instance.new("TextLabel", b); t.Size = UDim2.new(1, 0, 1, 0); t.BackgroundTransparency = 0.3; t.BackgroundColor3 = Color3.fromRGB(20, 20, 20); t.TextSize = 11; t.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", t).CornerRadius = UDim.new(0, 6)endlocal cleanName = "📦 ОБЪЕКТ"if isMine then cleanName = "💥 МИНА / РАСТЯЖКА"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 50, 50)elseif isDrop then cleanName = "✈️ АИРДРОП"; b.TextLabel.TextColor3 = Color3.fromRGB(0, 255, 255)elseif string.find(nameLower, "^aurora") then cleanName = "✨ АВРОРА КЕЙС"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 215, 0)elseif string.find(nameLower, "^safe") or string.find(nameLower, "^сейф") then cleanName = "🗄️ СЕЙФ"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 165, 0)else cleanName = "🎁 КЕЙС / ЯЩИК"; b.TextLabel.TextColor3 = Color3.fromRGB(0, 255, 100) endb.TextLabel.Text = cleanName .. " [" .. tostring(dist) .. "m]"elseif p:FindFirstChild("LootTextGui") then p.LootTextGui:Destroy() endif p:FindFirstChild("MineTextGui") then p.MineTextGui:Destroy() endendendendendendtask.wait(1.0)endend)for _, v in pairs(workspace:GetDescendants()) do pcall(function() applyLightESP(v) end) end
+                                local t = Instance.new("TextLabel", b); t.Size = UDim2.new(1, 0, 1, 0); t.BackgroundTransparency = 0.3; t.BackgroundColor3 = Color3.fromRGB(20, 20, 20); t.TextSize = 11; t.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", t).CornerRadius = UDim.new(0, 6)
+                            end
+                            local cleanName = "📦 ОБЪЕКТ"
+                            if isDrop then cleanName = "✈️ АИРДРОП"; b.TextLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+                            elseif string.find(nameLower, "^aurora") then cleanName = "✨ АВРОРА КЕЙС"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+                            elseif string.find(nameLower, "^safe") or string.find(nameLower, "^сейф") then cleanName = "🗄️ СЕЙФ"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 165, 0)
+                            else cleanName = "🎁 КЕЙС / ЯЩИК"; b.TextLabel.TextColor3 = Color3.fromRGB(0, 255, 100) end
+                            b.TextLabel.Text = cleanName .. " [" .. tostring(dist) .. "m]"
+                        else
+                            if p:FindFirstChild("LootTextGui") then p.LootTextGui:Destroy() end
+                        end
+                    end
+                end
+            end
+        end
+        task.wait(1.0)
+    end
+end)
+for _, v in pairs(workspace:GetDescendants()) do pcall(function() applyLightESP(v) end) end
