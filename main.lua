@@ -178,21 +178,24 @@ local boneCache = {}
 local lastCacheClear = os.clock()
 
 local function getVisiblePart(character)
-    if not character then return nil end
+    if not character or not lPlr.Character then return nil end
     local now = os.clock()
-    if now - lastCacheClear > 0.05 then
+    if now - lastCacheClear > 0.03 then
         table.clear(checkCache)
         table.clear(boneCache)
         lastCacheClear = now
     end
     if checkCache[character] ~= nil then return boneCache[character] end
 
-    local ignoreList = {lPlr.Character, cam}
+    local myHead = lPlr.Character:FindFirstChild("Head")
+    if not myHead then return nil end
+
     for _, bName in ipairs(boneNames) do
         local part = character:FindFirstChild(bName)
         if part then
-            local obscuring = cam:GetPartsObscuringTarget({part.Position}, ignoreList)
-            if #obscuring == 0 then
+            local ray = Ray.new(myHead.Position, (part.Position - myHead.Position).Unit * 999)
+            local hit = workspace:FindPartOnRayWithIgnoreList(ray, {lPlr.Character, cam, character})
+            if not hit then
                 checkCache[character] = true
                 boneCache[character] = part
                 return part
@@ -323,20 +326,21 @@ oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
     local method = getnamecallmethod()
     local args = {...}
     
-    local res = oldNamecall(self, ...)
     if getgenv().aimbotEnabled and getgenv().aimMode == "Sentinel" and (method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList" or method == "Raycast") then
         local target = getTargetInFov()
         if target then
-            if method == "Raycast" and res then
-                local fakeRes = {Instance = target, Position = target.Position, Material = target.Material, Normal = Vector3.new(0,1,0), Distance = res.Distance}
-                setmetatable(fakeRes, getmetatable(res))
-                return fakeRes
-            elseif method ~= "Raycast" then
-                return target, target.Position, Vector3.new(0, 1, 0), target.Material
+            if method == "Raycast" and args[1] and args[2] then
+                args[2] = (target.Position - args[1]).Unit * args[2].Magnitude
+                return oldNamecall(self, unpack(args))
+            elseif (method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList") and args[1] then
+                local origin = args[1].Origin
+                local direction = (target.Position - origin).Unit * 999
+                args[1] = Ray.new(origin, direction)
+                return oldNamecall(self, unpack(args))
             end
         end
     end
-    return res
+    return oldNamecall(self, ...)
 end)
 
 runService.RenderStepped:Connect(function()
@@ -353,7 +357,7 @@ runService.RenderStepped:Connect(function()
             if onScreen then
                 local mousePos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
                 local currentDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                local lerpAlpha = currentDist > 40 and 0.14 or 0.05
+                local lerpAlpha = currentDist > 50 and 0.18 or 0.06
                 local targetCFrame = CFrame.new(cam.CFrame.Position, targetPart.Position)
                 cam.CFrame = cam.CFrame:Lerp(targetCFrame, lerpAlpha)
             end
@@ -439,10 +443,11 @@ local function applyLightESP(model)
         task.spawn(function()
             while model and model.Parent and p and t and b do
                 b.Enabled = getgenv().itemEspEnabled
-                t.Visible = getgenv().itemEspEnabled
-                local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
-                if myHrp and getgenv().itemEspEnabled then 
-                    t.Text = cleanName .. " [" .. tostring(math.floor((myHrp.Position - p.Position).Magnitude)) .. "m]"
+                if getgenv().itemEspEnabled then
+                    local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
+                    if myHrp then 
+                        t.Text = cleanName .. " [" .. tostring(math.floor((myHrp.Position - p.Position).Magnitude)) .. "m]"
+                    end
                 end
                 task.wait(0.5)
             end
