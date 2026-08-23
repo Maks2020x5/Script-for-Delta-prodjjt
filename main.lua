@@ -209,14 +209,6 @@ minimizeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-local function cleanAllLootGuis()
-    for _, descendant in pairs(workspace:GetDescendants()) do
-        if descendant:IsA("BillboardGui") and (descendant.Name == "LootTextGui" or descendant.Name == "MineTextGui") then
-            descendant:Destroy()
-        end
-    end
-end
-
 local function createToggle(text, env_val, order)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 180, 0, 35)
@@ -241,7 +233,6 @@ local function createToggle(text, env_val, order)
             btn.Text = text .. ": ВЫКЛ"
             btn.TextColor3 = Color3.fromRGB(200, 200, 200)
             if env_val == "aimbotEnabled" then subFrame.Visible = false end
-            if env_val == "itemEspEnabled" or env_val == "mineEspEnabled" then cleanAllLootGuis() end
         end
     end
     
@@ -305,9 +296,9 @@ runService.RenderStepped:Connect(function()
         local targetPart, fovDist = getTargetData()
         if targetPart and fovDist then
             local fovRatio = 1 - (fovDist / getgenv().aimbotFov)
-            local baseLerp = 0.05
-            local maxLerp = 0.24
-            local dynamicAlpha = baseLerp + (maxLerp - baseLerp) * (fovRatio * fovRatio)
+            local baseLerp = 0.06
+            local maxLerp = 0.28
+            local dynamicAlpha = baseLerp + (maxLerp - baseLerp) * fovRatio
             
             local targetCFrame = CFrame.new(cam.CFrame.Position, targetPart.Position)
             cam.CFrame = cam.CFrame:Lerp(targetCFrame, dynamicAlpha)
@@ -362,7 +353,6 @@ local function applyLightESP(model)
     local nameL = string.lower(model.Name)
     
     if string.find(nameL, "mine") or string.find(nameL, "claymore") or string.find(nameL, "explosive") or string.find(nameL, "растяжка") or string.find(nameL, "mon-50") then
-        if not getgenv().mineEspEnabled then return end
         local p = model:IsA("BasePart") and model or model:FindFirstChildWhichIsA("BasePart")
         if not p or p:FindFirstChild("MineTextGui") then return end
         
@@ -371,18 +361,19 @@ local function applyLightESP(model)
         Instance.new("UICorner").CornerRadius = UDim.new(0, 6) t.Parent = t
         
         task.spawn(function()
-            while model and model.Parent and p and t and b and getgenv().mineEspEnabled do
-                local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
-                if myHrp then 
-                    t.Text, t.Visible = "💥 МИНА [" .. tostring(math.floor((myHrp.Position - p.Position).Magnitude)) .. "m]", true 
-                else t.Visible = false end
+            while model and model.Parent and p and t and b do
+                b.Enabled = getgenv().mineEspEnabled
+                if getgenv().mineEspEnabled then
+                    local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
+                    if myHrp then 
+                        t.Text, fovCircle.Visible = "💥 МИНА [" .. tostring(math.floor((myHrp.Position - p.Position).Magnitude)) .. "m]", true 
+                    else b.Enabled = false end
+                end
                 task.wait(0.5)
             end
-            if b then b:Destroy() end
         end)
         
     elseif model.Name == "AuroraBox" or model.Name == "BigBox" or string.find(nameL, "safe") or string.find(nameL, "сейф") or string.find(nameL, "loot") or string.find(nameL, "crate") then
-        if not getgenv().itemEspEnabled then return end
         local p = model:IsA("BasePart") and model or model:FindFirstChild("Part") or model:FindFirstChildWhichIsA("BasePart")
         if not p or p:FindFirstChild("LootTextGui") then return end
         
@@ -393,14 +384,16 @@ local function applyLightESP(model)
         t.Text = cleanName Instance.new("UICorner").CornerRadius = UDim.new(0, 6) t.Parent = t
         
         task.spawn(function()
-            while model and model.Parent and p and t and b and getgenv().itemEspEnabled do
-                local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
-                if myHrp then 
-                    t.Text, t.Visible = cleanName .. " [" .. tostring(math.floor((myHrp.Position - p.Position).Magnitude)) .. "m]", true 
-                else t.Visible = false end
+            while model and model.Parent and p and t and b do
+                b.Enabled = getgenv().itemEspEnabled
+                if getgenv().itemEspEnabled then
+                    local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
+                    if myHrp then 
+                        t.Text, b.Enabled = cleanName .. " [" .. tostring(math.floor((myHrp.Position - p.Position).Magnitude)) .. "m]", true 
+                    else b.Enabled = false end
+                end
                 task.wait(0.5)
             end
-            if b then b:Destroy() end
         end)
     end
 end
