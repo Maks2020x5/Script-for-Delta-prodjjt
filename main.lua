@@ -6,11 +6,13 @@ getgenv().aimbotEnabled = true
 getgenv().aimbotMaxDist = 300
 getgenv().aimbotFov = 120
 getgenv().showFovCircle = true
+getgenv().nvgButtonEnabled = false
 
 local lPlr = game:GetService("Players").LocalPlayer
 local cam = workspace.CurrentCamera
 local runService = game:GetService("RunService")
 local tweenService = game:GetService("TweenService")
+local lighting = game:GetService("Lighting")
 
 local fovCircle = Drawing.new("Circle")
 fovCircle.Visible = getgenv().showFovCircle
@@ -20,7 +22,7 @@ fovCircle.Transparency = 0.7
 fovCircle.NumSides = 64
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "DeltaProjectMenu"
+screenGui.Name = "DeltaProjectMenu_" .. math.random(100, 999)
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 if syn and syn.protect_gui then syn.protect_gui(screenGui) end
@@ -28,7 +30,7 @@ screenGui.Parent = game:GetService("CoreGui") or lPlr:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 200, 0, 290)
+mainFrame.Size = UDim2.new(0, 200, 0, 330)
 mainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.BorderSizePixel = 0
@@ -147,6 +149,15 @@ titleText.Font = Enum.Font.SourceSansBold
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = titleBar
 
+pcall(function()
+    local old; old = hookmetamethod(game, "__index", function(self, key)
+        if not checkcaller() and (self == screenGui or self == mainFrame or self == fovFrame) then
+            return nil
+        end
+        return old(self, key)
+    end)
+end)
+
 local bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand"}
 
 local function getBestVisibleBone(character)
@@ -182,7 +193,7 @@ minimizeBtn.Parent = titleBar
 
 local contentFrame = Instance.new("Frame")
 contentFrame.Name = "Content"
-contentFrame.Size = UDim2.new(1, 0, 0, 255)
+contentFrame.Size = UDim2.new(1, 0, 0, 295)
 contentFrame.Position = UDim2.new(0, 0, 0, 35)
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
@@ -204,8 +215,59 @@ minimizeBtn.MouseButton1Click:Connect(function()
     else
         contentFrame.Visible = true
         subFrame.Visible = getgenv().aimbotEnabled
-        mainFrame.Size = UDim2.new(0, 200, 0, 290)
+        mainFrame.Size = UDim2.new(0, 200, 0, 330)
         minimizeBtn.Text = "—"
+    end
+end)
+
+local actionButton = Instance.new("TextButton")
+actionButton.Name = "NvgScreenButton"
+actionButton.Size = UDim2.new(0, 60, 0, 60)
+actionButton.Position = UDim2.new(0.85, 0, 0.4, 0)
+actionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+actionButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+actionButton.TextSize = 14
+actionButton.Font = Enum.Font.SourceSansBold
+actionButton.Text = "NVG"
+actionButton.Visible = false
+actionButton.Active = true
+actionButton.Draggable = true
+actionButton.Parent = screenGui
+
+local actCorner = Instance.new("UICorner")
+actCorner.CornerRadius = UDim.new(1, 0)
+actCorner.Parent = actionButton
+
+local actStroke = Instance.new("UIStroke")
+actStroke.Color = Color3.fromRGB(0, 255, 0)
+actStroke.Thickness = 2
+actStroke.Parent = actionButton
+
+local nvgActive = false
+local origAmbient, origOutdoor, origColorCorr
+actionButton.MouseButton1Click:Connect(function()
+    nvgActive = not nvgActive
+    if nvgActive then
+        actionButton.BackgroundColor3 = Color3.fromRGB(0, 80, 0)
+        actionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        origAmbient = lighting.Ambient
+        origOutdoor = lighting.OutdoorAmbient
+        lighting.Ambient = Color3.fromRGB(100, 255, 100)
+        lighting.OutdoorAmbient = Color3.fromRGB(100, 255, 100)
+        local cc = lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect", lighting)
+        origColorCorr = {TintColor = cc.TintColor, Brightness = cc.Brightness}
+        cc.TintColor = Color3.fromRGB(120, 255, 120)
+        cc.Brightness = 0.2
+    else
+        actionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        actionButton.TextColor3 = Color3.fromRGB(0, 255, 0)
+        if origAmbient then lighting.Ambient = origAmbient end
+        if origOutdoor then lighting.OutdoorAmbient = origOutdoor end
+        local cc = lighting:FindFirstChildOfClass("ColorCorrectionEffect")
+        if cc and origColorCorr then
+            cc.TintColor = origColorCorr.TintColor
+            cc.Brightness = origColorCorr.Brightness
+        end
     end
 end)
 
@@ -214,22 +276,6 @@ local function destroyAllLootGuis()
         if v:IsA("BillboardGui") and (v.Name == "LootTextGui" or v.Name == "MineTextGui") then
             v:Destroy()
         end
-    end
-end
-
-local function applyLootScan()
-    for _, v in pairs(workspace:GetDescendants()) do
-        pcall(function()
-            if v.Name == "AuroraBox" or v.Name == "BigBox" or string.find(string.lower(v.Name), "safe") or string.find(string.lower(v.Name), "сейф") or string.find(string.lower(v.Name), "loot") then
-                local p = v:IsA("BasePart") and v or v:FindFirstChild("Part") or v:FindFirstChildWhichIsA("BasePart")
-                if p and not p:FindFirstChild("LootTextGui") and getgenv().itemEspEnabled then
-                    local b = Instance.new("BillboardGui") b.Name = "LootTextGui" b.AlwaysOnTop = true b.Size = UDim2.new(0, 130, 0, 25) b.StudsOffset = Vector3.new(0, 2, 0) b.Parent = p
-                    local t = Instance.new("TextLabel") t.Size = UDim2.new(1, 0, 1, 0) t.BackgroundTransparency = 0.3 t.BackgroundColor3 = Color3.fromRGB(20, 20, 20) t.TextColor3 = Color3.fromRGB(255, 215, 0) t.TextSize = 11 t.Font = Enum.Font.SourceSansBold t.Parent = b
-                    local cleanName = v.Name == "AuroraBox" and "✨ АВРОРА КЕЙС" or v.Name == "BigBox" and "🎁 БОЛЬШОЙ КЕЙС" or (string.find(string.lower(v.Name), "safe") or string.find(string.lower(v.Name), "сейф")) and "🗄️ СЕЙФ" or "📦 ЛУТ / ЯЩИК"
-                    t.Text = cleanName Instance.new("UICorner").CornerRadius = UDim.new(0, 6) t.Parent = t
-                end
-            end
-        end)
     end
 end
 
@@ -252,18 +298,21 @@ local function createToggle(text, env_val, order)
             btn.Text = text .. ": ВКЛ"
             btn.TextColor3 = Color3.fromRGB(255, 255, 255)
             if env_val == "aimbotEnabled" and not isMinimized then subFrame.Visible = true end
-            if env_val == "itemEspEnabled" then applyLootScan() end
+            if env_val == "nvgButtonEnabled" then actionButton.Visible = true end
         else
             btn.BackgroundColor3 = Color3.fromRGB(139, 0, 0)
             btn.Text = text .. ": ВЫКЛ"
             btn.TextColor3 = Color3.fromRGB(200, 200, 200)
             if env_val == "aimbotEnabled" then subFrame.Visible = false end
+            if env_val == "nvgButtonEnabled" then 
+                actionButton.Visible = false 
+                if nvgActive then actionButton:SimulateClick() end 
+            end
             if env_val == "itemEspEnabled" or env_val == "mineEspEnabled" then destroyAllLootGuis() end
         end
     end
     
     updateVisuals()
-    
     btn.MouseButton1Click:Connect(function()
         getgenv()[env_val] = not getgenv()[env_val]
         updateVisuals()
@@ -281,29 +330,7 @@ createToggle("👤 ESP ИГРОКИ", "espEnabled", 2)
 createToggle("💀 ESP ТРУПЫ", "corpseEspEnabled", 3)
 createToggle("📦 ESP ЛУТ (КЕЙСЫ)", "itemEspEnabled", 4)
 createToggle("💥 ESP МИНЫ", "mineEspEnabled", 5)
-
-local function isHoldingGun()
-    if not lPlr.Character then return false end
-    
-    local item = lPlr.Character:FindFirstChildOfClass("Tool")
-    if not item then
-        for _, child in pairs(lPlr.Character:GetChildren()) do
-            if child:IsA("Model") and (child:FindFirstChild("Ammo") or child:FindFirstChild("Muzzle") or child:FindFirstChild("Handle")) then
-                item = child
-                break
-            end
-        end
-    end
-    if not item then return false end
-    
-    local nameLower = string.lower(item.Name)
-    if string.find(nameLower, "knife") or string.find(nameLower, "нож") or string.find(nameLower, "axe") or string.find(nameLower, "топор") or string.find(nameLower, "grenade") or string.find(nameLower, "граната") or string.find(nameLower, "lighter") or string.find(nameLower, "кулак") or string.find(nameLower, "fist") or string.find(nameLower, "med") or string.find(nameLower, "food") or string.find(nameLower, "water") or string.find(nameLower, "playermanager") then
-        return false
-    end
-    
-    return true
-end
-
+createToggle("🟢 ПНВ КНОПКА", "nvgButtonEnabled", 6)
 local function getTargetData()
     local bestPart = nil
     local shortestFovDist = math.huge
@@ -333,22 +360,21 @@ local function getTargetData()
     end
     return bestPart, shortestFovDist
 end
+
 runService.RenderStepped:Connect(function()
-    local currentWeaponState = isHoldingGun()
-    fovCircle.Visible = getgenv().showFovCircle and getgenv().aimbotEnabled and currentWeaponState
+    fovCircle.Visible = getgenv().showFovCircle and getgenv().aimbotEnabled
     if fovCircle.Visible then
         fovCircle.Position = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
         fovCircle.Radius = getgenv().aimbotFov
     end
     
-    if getgenv().aimbotEnabled and currentWeaponState then
+    if getgenv().aimbotEnabled then
         local targetPart, fovDist = getTargetData()
         if targetPart and fovDist then
             local fovRatio = 1 - (fovDist / getgenv().aimbotFov)
-            local baseLerp = 0.12
-            local maxLerp = 0.45
+            local baseLerp = 0.06
+            local maxLerp = 0.28
             local dynamicAlpha = baseLerp + (maxLerp - baseLerp) * fovRatio
-            
             local targetCFrame = CFrame.new(cam.CFrame.Position, targetPart.Position)
             cam.CFrame = cam.CFrame:Lerp(targetCFrame, dynamicAlpha)
         end
@@ -357,36 +383,27 @@ end)
 
 local function applyLightESP(model)
     if not model or not model.Parent then return end
-    
     if model:FindFirstChild("Humanoid") and model:FindFirstChild("HumanoidRootPart") then
         if model.Name == lPlr.Name then return end
         local hrp = model.HumanoidRootPart
-        
         local hl = model:FindFirstChild("MobileESP") or Instance.new("Highlight")
-        if not hl.Parent then 
-            hl.Name = "MobileESP" hl.Parent = model hl.FillTransparency = 1 hl.OutlineTransparency = 0 
-        end
-        
+        if not hl.Parent then hl.Name = "MobileESP" hl.Parent = model hl.FillTransparency = 1 hl.OutlineTransparency = 0 end
         local bGui = hrp:FindFirstChild("TextEspGui") or Instance.new("BillboardGui")
         if not bGui.Parent then
             bGui.Name = "TextEspGui" bGui.AlwaysOnTop = true bGui.Size = UDim2.new(0, 100, 0, 25) bGui.StudsOffset = Vector3.new(0, 3, 0) bGui.Parent = hrp
             local txt = Instance.new("TextLabel") txt.Size = UDim2.new(1, 0, 1, 0) txt.BackgroundTransparency = 1 txt.TextSize = 13 txt.Font = Enum.Font.SourceSansBold txt.Parent = bGui
-            
             task.spawn(function()
                 while model and model.Parent and hrp and txt and bGui and hl do
                     local isDead = model.Humanoid.Health <= 0
                     local state = isDead and getgenv().corpseEspEnabled or getgenv().espEnabled
                     hl.Enabled, bGui.Enabled = state, state
-                    
                     if state then
                         local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
                         if myHrp then
                             local d = math.floor((myHrp.Position - hrp.Position).Magnitude)
                             local visiblePart = getBestVisibleBone(model)
                             local base = isDead and "[ТРУП]" or game.Players:FindFirstChild(model.Name) and "[ИГРОК]" or "[БОТ]"
-                            
                             local c = isDead and Color3.fromRGB(150, 150, 150) or visiblePart and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-                            
                             hl.OutlineColor, txt.TextColor3 = c, c
                             txt.Text = base .. " " .. tostring(d) .. "m"
                             txt.Visible = true
@@ -396,7 +413,6 @@ local function applyLightESP(model)
                 end
             end)
         end
-        return
     end
 end
 
@@ -427,6 +443,4 @@ task.spawn(function()
     end
 end)
 
-for _, v in pairs(workspace:GetDescendants()) do 
-    pcall(function() applyLightESP(v) end) 
-end
+for _, v in pairs(workspace:GetDescendants()) do pcall(function() applyLightESP(v) end) end
