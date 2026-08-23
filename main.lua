@@ -172,13 +172,6 @@ inputService.InputChanged:Connect(function(input)
     end
 end)
 
-pcall(function()
-    local old; old = hookmetamethod(game, "__index", function(self, key)
-        if not checkcaller() and (self == screenGui or self == mainFrame) then return nil end
-        return old(self, key)
-    end)
-end)
-
 local bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand"}
 local wallCheckCache = {}
 local lastCacheReset = os.clock()
@@ -485,7 +478,7 @@ task.spawn(function()
     while true do
         if getgenv().itemEspEnabled then
             local mapFolder = workspace:FindFirstChild("Map") or workspace
-            for _, descendant in pairs(mapFolder:GetDescendants()) do
+            for _, descendant in pairs(mapFolder:GetChildren()) do
                 if descendant.Name == "AuroraBox" or descendant.Name == "BigBox" or string.find(string.lower(descendant.Name), "safe") or string.find(string.lower(descendant.Name), "сейф") then
                     local p = descendant:IsA("BasePart") and descendant or descendant:FindFirstChild("Part") or descendant:FindFirstChildWhichIsA("BasePart")
                     if p and not p:FindFirstChild("LootTextGui") and getgenv().itemEspEnabled then
