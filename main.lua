@@ -147,22 +147,24 @@ titleText.Font = Enum.Font.SourceSansBold
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = titleBar
 
-local function checkPlayerVisibility(character)
-    if not character then return false end
-    local head = character:FindFirstChild("Head")
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    local foot = character:FindFirstChild("LeftFoot") or character:FindFirstChild("Left Leg")
-    
-    local points = {}
-    if head then table.insert(points, head.Position) end
-    if hrp then table.insert(points, hrp.Position) end
-    if foot then table.insert(points, foot.Position) end
-    
-    if #points == 0 then return false end
-    local ignoreList = {lPlr.Character, cam}
-    local obscuringParts = cam:GetPartsObscuringTarget(points, ignoreList)
-    
-    return #obscuringParts <= 1
+local bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand", "LeftLowerLeg", "RightLowerLeg"}
+
+local function getBestVisibleBone(character)
+    if not character or not lPlr.Character then return nil end
+    local myHead = lPlr.Character:FindFirstChild("Head")
+    if not myHead then return nil end
+
+    for _, boneName in ipairs(bonePriority) do
+        local part = character:FindFirstChild(boneName)
+        if part then
+            local ray = Ray.new(myHead.Position, (part.Position - myHead.Position).Unit * 999)
+            local hit = workspace:FindPartOnRayWithIgnoreList(ray, {lPlr.Character, cam, character}, false, true)
+            if not hit then
+                return part
+            end
+        end
+    end
+    return nil
 end
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
@@ -250,26 +252,26 @@ createToggle("💀 ESP ТРУПЫ", "corpseEspEnabled", 3)
 createToggle("📦 ESP ЛУТ (КЕЙСЫ)", "itemEspEnabled", 4)
 createToggle("💥 ESP МИНЫ", "mineEspEnabled", 5)
 
-local function getTargetInFov()
-    local target = nil
-    local shortestDist = math.huge
+local function getTargetData()
+    local bestPart = nil
+    local shortestFovDist = math.huge
     local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
-    if not myHrp then return nil end
+    if not myHrp then return nil, nil end
     
     for _, v in pairs(workspace:GetChildren()) do
         if v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Name ~= lPlr.Name then
-            if v.Humanoid.Health > 0 and checkPlayerVisibility(v) then
-                local head = v:FindFirstChild("Head")
-                if head then
-                    local screenPos, onScreen = cam:WorldToViewportPoint(head.Position)
+            if v.Humanoid.Health > 0 then
+                local visiblePart = getBestVisibleBone(v)
+                if visiblePart then
+                    local screenPos, onScreen = cam:WorldToViewportPoint(visiblePart.Position)
                     if onScreen then
-                        local worldDist = (myHrp.Position - head.Position).Magnitude
+                        local worldDist = (myHrp.Position - visiblePart.Position).Magnitude
                         if worldDist <= getgenv().aimbotMaxDist then
                             local mousePos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
                             local fovDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                            if fovDist <= getgenv().aimbotFov and fovDist < shortestDist then
-                                shortestDist = fovDist
-                                target = head
+                            if fovDist <= getgenv().aimbotFov and fovDist < shortestFovDist then
+                                shortestFovDist = fovDist
+                                bestPart = visiblePart
                             end
                         end
                     end
@@ -277,7 +279,7 @@ local function getTargetInFov()
             end
         end
     end
-    return target
+    return bestPart, shortestFovDist
 end
 runService.RenderStepped:Connect(function()
     fovCircle.Visible = getgenv().showFovCircle and getgenv().aimbotEnabled
@@ -287,16 +289,15 @@ runService.RenderStepped:Connect(function()
     end
     
     if getgenv().aimbotEnabled then
-        local targetHead = getTargetInFov()
-        if targetHead then
-            local screenPos, onScreen = cam:WorldToViewportPoint(targetHead.Position)
-            if onScreen then
-                local mousePos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
-                local currentDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                local lerpAlpha = currentDist > 50 and 0.18 or 0.06
-                local targetCFrame = CFrame.new(cam.CFrame.Position, targetHead.Position)
-                cam.CFrame = cam.CFrame:Lerp(targetCFrame, lerpAlpha)
-            end
+        local targetPart, fovDist = getTargetData()
+        if targetPart and fovDist then
+            local fovRatio = 1 - (fovDist / getgenv().aimbotFov)
+            local baseLerp = 0.04
+            local maxLerp = 0.22
+            local dynamicAlpha = baseLerp + (maxLerp - baseLerp) * (fovRatio * fovRatio)
+            
+            local targetCFrame = CFrame.new(cam.CFrame.Position, targetPart.Position)
+            cam.CFrame = cam.CFrame:Lerp(targetCFrame, dynamicAlpha)
         end
     end
 end)
@@ -328,10 +329,10 @@ local function applyLightESP(model)
                         local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
                         if myHrp then
                             local d = math.floor((myHrp.Position - hrp.Position).Magnitude)
-                            local isVisible = checkPlayerVisibility(model)
+                            local visiblePart = getBestVisibleBone(model)
                             local base = isDead and "[ТРУП]" or game.Players:FindFirstChild(model.Name) and "[ИГРОК]" or "[БОТ]"
                             
-                            local c = isDead and Color3.fromRGB(150, 150, 150) or isVisible and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+                            local c = isDead and Color3.fromRGB(150, 150, 150) or visiblePart and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
                             
                             hl.OutlineColor, txt.TextColor3 = c, c
                             txt.Text = base .. " " .. tostring(d) .. "m"
@@ -379,9 +380,11 @@ local function applyLightESP(model)
         task.spawn(function()
             while model and model.Parent and p and t and b do
                 b.Enabled = getgenv().itemEspEnabled
-                local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
-                if myHrp and getgenv().itemEspEnabled then 
-                    t.Text, t.Visible = cleanName .. " [" .. tostring(math.floor((myHrp.Position - p.Position).Magnitude)) .. "m]", true 
+                if getgenv().itemEspEnabled then
+                    local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
+                    if myHrp then 
+                        t.Text, t.Visible = cleanName .. " [" .. tostring(math.floor((myHrp.Position - p.Position).Magnitude)) .. "m]", true
+                    else t.Visible = false end
                 else t.Visible = false end
                 task.wait(0.5)
             end
