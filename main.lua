@@ -434,7 +434,7 @@ local function applyLightESP(model)
             local txt = Instance.new("TextLabel") txt.Size = UDim2.new(1, 0, 1, 0) txt.BackgroundTransparency = 1 txt.TextSize = 13 txt.Font = Enum.Font.SourceSansBold txt.Parent = bGui
             task.spawn(function()
                 local lastUpdate = 0
-                while model and model.Parent engine and hrp and txt and bGui and hl do
+                while model and model.Parent and hrp and txt and bGui and hl do
                     local tickNow = os.clock()
                     if tickNow - lastUpdate > 0.3 then
                         lastUpdate = tickNow
