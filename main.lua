@@ -177,12 +177,19 @@ local function getVisiblePart(character)
     local myHead = lPlr.Character:FindFirstChild("Head")
     if not myHead then return nil end
 
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    rayParams.FilterDescendantsInstances = {lPlr.Character, cam, character}
+    rayParams.IgnoreWater = true
+
     for _, bName in ipairs(boneNames) do
         local part = character:FindFirstChild(bName)
         if part then
-            local ray = Ray.new(myHead.Position, (part.Position - myHead.Position).Unit * 999)
-            local hit = workspace:FindPartOnRayWithIgnoreList(ray, {lPlr.Character, cam, character})
-            if not hit then
+            local origin = myHead.Position
+            local direction = part.Position - origin
+            local raycastResult = workspace:Raycast(origin, direction, rayParams)
+            
+            if not raycastResult then
                 checkCache[character] = true
                 boneCache[character] = part
                 return part
