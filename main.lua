@@ -49,7 +49,6 @@ function isPlayerVisible(character)
     if checkPointVisible(origin, head, character) or checkPointVisible(origin, torso, character) or checkPointVisible(origin, hrp, character) then return true end
     return false
 end
-
 function getClosestTarget()
     local lPlrObj = game:GetService("Players").LocalPlayer
     local camObj = game:GetService("Workspace").CurrentCamera
