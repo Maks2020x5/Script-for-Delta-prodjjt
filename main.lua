@@ -7,6 +7,7 @@ getgenv().aimbotMaxDist = 300
 getgenv().aimbotFov = 120
 getgenv().showFovCircle = true
 getgenv().nvgButtonEnabled = false
+getgenv().fpsBoostEnabled = false
 
 local lPlr = game:GetService("Players").LocalPlayer
 local cam = workspace.CurrentCamera
@@ -19,7 +20,7 @@ fovCircle.Visible = getgenv().showFovCircle
 fovCircle.Thickness = 1.5
 fovCircle.Color = Color3.fromRGB(0, 255, 150)
 fovCircle.Transparency = 0.7
-fovCircle.NumSides = 64
+fovCircle.NumSides = 48
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DeltaProjectMenu_" .. math.random(100, 999)
@@ -30,7 +31,7 @@ screenGui.Parent = game:GetService("CoreGui") or lPlr:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 200, 0, 330)
+mainFrame.Size = UDim2.new(0, 200, 0, 370)
 mainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.BorderSizePixel = 0
@@ -151,34 +152,39 @@ titleText.Parent = titleBar
 
 pcall(function()
     local old; old = hookmetamethod(game, "__index", function(self, key)
-        if not checkcaller() and (self == screenGui or self == mainFrame or self == fovFrame) then
-            return nil
-        end
+        if not checkcaller() and (self == screenGui or self == mainFrame) then return nil end
         return old(self, key)
     end)
 end)
 
 local bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand"}
+local wallCheckCache = {}
+local lastCacheReset = os.clock()
 
 local function getBestVisibleBone(character)
     if not character or not lPlr.Character then return nil end
+    local now = os.clock()
+    if now - lastCacheReset > 0.05 then
+        table.clear(wallCheckCache)
+        lastCacheReset = now
+    end
+    if wallCheckCache[character] ~= nil then return wallCheckCache[character] end
+
     local myHead = lPlr.Character:FindFirstChild("Head")
     if not myHead then return nil end
 
     for _, boneName in ipairs(bonePriority) do
         local part = character:FindFirstChild(boneName)
         if part then
-            local startPos = myHead.Position
-            local targetPos = part.Position
-            local rayDirection = (targetPos - startPos).Unit * (targetPos - startPos).Magnitude
-            local ray = Ray.new(startPos, rayDirection)
-            
+            local ray = Ray.new(myHead.Position, (part.Position - myHead.Position).Unit * 999)
             local hit = workspace:FindPartOnRayWithIgnoreList(ray, {lPlr.Character, cam, character}, false, true)
-            if not hit or hit:IsDescendantOf(character) or hit.CanCollide == false or hit.Transparency > 0.8 then
+            if not hit or hit.CanCollide == false or hit.Transparency > 0.8 then
+                wallCheckCache[character] = part
                 return part
             end
         end
     end
+    wallCheckCache[character] = false
     return nil
 end
 local minimizeBtn = Instance.new("TextButton")
@@ -193,7 +199,7 @@ minimizeBtn.Parent = titleBar
 
 local contentFrame = Instance.new("Frame")
 contentFrame.Name = "Content"
-contentFrame.Size = UDim2.new(1, 0, 0, 295)
+contentFrame.Size = UDim2.new(1, 0, 0, 335)
 contentFrame.Position = UDim2.new(0, 0, 0, 35)
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
@@ -215,7 +221,7 @@ minimizeBtn.MouseButton1Click:Connect(function()
     else
         contentFrame.Visible = true
         subFrame.Visible = getgenv().aimbotEnabled
-        mainFrame.Size = UDim2.new(0, 200, 0, 330)
+        mainFrame.Size = UDim2.new(0, 200, 0, 370)
         minimizeBtn.Text = "—"
     end
 end)
@@ -271,6 +277,31 @@ actionButton.MouseButton1Click:Connect(function()
     end
 end)
 
+local materialBackup = {}
+local origShadows = lighting.GlobalShadows
+local function toggleFpsBoost(enable)
+    lighting.GlobalShadows = not enable
+    if enable then
+        for _, effect in pairs(lighting:GetChildren()) do
+            if effect:IsA("BlurEffect") or effect:IsA("SunRaysEffect") or effect:IsA("Sky") or effect:IsA("Clouds") then
+                effect.Parent = nil
+            end
+        end
+        for _, part in pairs(workspace:GetDescendants()) do
+            if part:IsA("BasePart") and not part:IsDescendantOf(lPlr.Character) and part.Material ~= Enum.Material.SmoothPlastic then
+                materialBackup[part] = part.Material
+                part.Material = Enum.Material.SmoothPlastic
+            end
+        end
+    else
+        lighting.GlobalShadows = origShadows
+        for part, material in pairs(materialBackup) do
+            if part and part.Parent then part.Material = material end
+        end
+        table.clear(materialBackup)
+    end
+end
+
 local function destroyAllLootGuis()
     for _, v in pairs(workspace:GetDescendants()) do
         if v:IsA("BillboardGui") and (v.Name == "LootTextGui" or v.Name == "MineTextGui") then
@@ -299,11 +330,13 @@ local function createToggle(text, env_val, order)
             btn.TextColor3 = Color3.fromRGB(255, 255, 255)
             if env_val == "aimbotEnabled" and not isMinimized then subFrame.Visible = true end
             if env_val == "nvgButtonEnabled" then actionButton.Visible = true end
+            if env_val == "fpsBoostEnabled" then toggleFpsBoost(true) end
         else
             btn.BackgroundColor3 = Color3.fromRGB(139, 0, 0)
             btn.Text = text .. ": ВЫКЛ"
             btn.TextColor3 = Color3.fromRGB(200, 200, 200)
             if env_val == "aimbotEnabled" then subFrame.Visible = false end
+            if env_val == "fpsBoostEnabled" then toggleFpsBoost(false) end
             if env_val == "nvgButtonEnabled" then 
                 actionButton.Visible = false 
                 if nvgActive then actionButton:SimulateClick() end 
@@ -331,6 +364,7 @@ createToggle("💀 ESP ТРУПЫ", "corpseEspEnabled", 3)
 createToggle("📦 ESP ЛУТ (КЕЙСЫ)", "itemEspEnabled", 4)
 createToggle("💥 ESP МИНЫ", "mineEspEnabled", 5)
 createToggle("🟢 ПНВ КНОПКА", "nvgButtonEnabled", 6)
+createToggle("⚡ ФПС БУСТ", "fpsBoostEnabled", 7)
 local function getTargetData()
     local bestPart = nil
     local shortestFovDist = math.huge
@@ -361,6 +395,7 @@ local function getTargetData()
     return bestPart, shortestFovDist
 end
 
+local lastAimTime = 0
 runService.RenderStepped:Connect(function()
     fovCircle.Visible = getgenv().showFovCircle and getgenv().aimbotEnabled
     if fovCircle.Visible then
@@ -368,12 +403,14 @@ runService.RenderStepped:Connect(function()
         fovCircle.Radius = getgenv().aimbotFov
     end
     
-    if getgenv().aimbotEnabled then
+    local now = os.clock()
+    if getgenv().aimbotEnabled and (now - lastAimTime > 0.01) then
+        lastAimTime = now
         local targetPart, fovDist = getTargetData()
         if targetPart and fovDist then
             local fovRatio = 1 - (fovDist / getgenv().aimbotFov)
-            local baseLerp = 0.06
-            local maxLerp = 0.28
+            local baseLerp = 0.12
+            local maxLerp = 0.45
             local dynamicAlpha = baseLerp + (maxLerp - baseLerp) * fovRatio
             local targetCFrame = CFrame.new(cam.CFrame.Position, targetPart.Position)
             cam.CFrame = cam.CFrame:Lerp(targetCFrame, dynamicAlpha)
@@ -393,23 +430,28 @@ local function applyLightESP(model)
             bGui.Name = "TextEspGui" bGui.AlwaysOnTop = true bGui.Size = UDim2.new(0, 100, 0, 25) bGui.StudsOffset = Vector3.new(0, 3, 0) bGui.Parent = hrp
             local txt = Instance.new("TextLabel") txt.Size = UDim2.new(1, 0, 1, 0) txt.BackgroundTransparency = 1 txt.TextSize = 13 txt.Font = Enum.Font.SourceSansBold txt.Parent = bGui
             task.spawn(function()
+                local lastUpdate = 0
                 while model and model.Parent and hrp and txt and bGui and hl do
-                    local isDead = model.Humanoid.Health <= 0
-                    local state = isDead and getgenv().corpseEspEnabled or getgenv().espEnabled
-                    hl.Enabled, bGui.Enabled = state, state
-                    if state then
-                        local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
-                        if myHrp then
-                            local d = math.floor((myHrp.Position - hrp.Position).Magnitude)
-                            local visiblePart = getBestVisibleBone(model)
-                            local base = isDead and "[ТРУП]" or game.Players:FindFirstChild(model.Name) and "[ИГРОК]" or "[БОТ]"
-                            local c = isDead and Color3.fromRGB(150, 150, 150) or visiblePart and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-                            hl.OutlineColor, txt.TextColor3 = c, c
-                            txt.Text = base .. " " .. tostring(d) .. "m"
-                            txt.Visible = true
+                    local tickNow = os.clock()
+                    if tickNow - lastUpdate > 0.3 then
+                        lastUpdate = tickNow
+                        local isDead = model.Humanoid.Health <= 0
+                        local state = isDead and getgenv().corpseEspEnabled or getgenv().espEnabled
+                        hl.Enabled, bGui.Enabled = state, state
+                        if state then
+                            local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
+                            if myHrp then
+                                local d = math.floor((myHrp.Position - hrp.Position).Magnitude)
+                                local visiblePart = getBestVisibleBone(model)
+                                local base = isDead and "[ТРУП]" or game.Players:FindFirstChild(model.Name) and "[ИГРОК]" or "[БОТ]"
+                                local c = isDead and Color3.fromRGB(150, 150, 150) or visiblePart and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+                                hl.OutlineColor, txt.TextColor3 = c, c
+                                txt.Text = base .. " " .. tostring(d) .. "m"
+                                txt.Visible = true
+                            else txt.Visible = false end
                         else txt.Visible = false end
-                    else txt.Visible = false end
-                    task.wait(0.4)
+                    end
+                    task.wait(0.2)
                 end
             end)
         end
@@ -420,7 +462,8 @@ workspace.ChildAdded:Connect(applyLightESP)
 task.spawn(function()
     while true do
         if getgenv().itemEspEnabled then
-            for _, descendant in pairs(workspace:GetDescendants()) do
+            local mapFolder = workspace:FindFirstChild("Map") or workspace
+            for _, descendant in pairs(mapFolder:GetChildren()) do
                 if descendant.Name == "AuroraBox" or descendant.Name == "BigBox" or string.find(string.lower(descendant.Name), "safe") or string.find(string.lower(descendant.Name), "сейф") then
                     local p = descendant:IsA("BasePart") and descendant or descendant:FindFirstChild("Part") or descendant:FindFirstChildWhichIsA("BasePart")
                     if p and not p:FindFirstChild("LootTextGui") and getgenv().itemEspEnabled then
@@ -439,8 +482,14 @@ task.spawn(function()
                 end
             end
         end
-        task.wait(0.6)
+        task.wait(0.7)
     end
 end)
 
-for _, v in pairs(workspace:GetDescendants()) do pcall(function() applyLightESP(v) end) end
+task.spawn(function()
+    local objects = workspace:GetChildren()
+    for i, v in ipairs(objects) do
+        pcall(function() applyLightESP(v) end)
+        if i % 100 == 0 then task.wait(0.01) end
+    end
+end)
