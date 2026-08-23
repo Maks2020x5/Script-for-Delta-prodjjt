@@ -33,7 +33,7 @@ screenGui.Name = "DeltaProjectMenu_" .. math.random(100, 999)
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 if syn and syn.protect_gui then syn.protect_gui(screenGui) end
-screenGui.Parent = game:GetService("CoreGui") or lPlr:WaitForChild("PlayerGui")
+screenGui.Parent = lPlr:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
