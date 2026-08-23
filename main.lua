@@ -1,13 +1,13 @@
-getgenv().espEnabled = false
-getgenv().itemEspEnabled = false
-getgenv().mineEspEnabled = false
-getgenv().corpseEspEnabled = false
-getgenv().aimbotEnabled = false
-getgenv().aimbotMaxDist = 300
-getgenv().fovCircleVisible = false
+getgenv().espEnabled = true
+getgenv().itemEspEnabled = true
+getgenv().mineEspEnabled = true
+getgenv().corpseEspEnabled = true
+getgenv().aimbotEnabled = true
+getgenv().aimbotMaxDist = 500
+getgenv().fovCircleVisible = true
 getgenv().fovCircleRadius = 120
-getgenv().hitboxEnabled = false
-getgenv().hitboxSize = 2
+getgenv().hitboxEnabled = true
+getgenv().hitboxSize = 3
 getgenv().SentinelHitChance = 100
 
 local lPlr = game:GetService("Players").LocalPlayer
@@ -58,7 +58,7 @@ OpenBtn.MouseButton1Click:Connect(function() getgenv().GMK_MainFrame.Visible = n
 local Title = Instance.new("TextLabel") Title.Size = UDim2.new(0, 150, 0, 30) Title.Position = UDim2.new(0, 10, 0, 0) Title.BackgroundTransparency = 1 Title.Text = "GMK MENU" Title.TextColor3 = Color3.fromRGB(0, 255, 150) Title.TextSize = 13 Title.Font = Enum.Font.SourceSansBold Title.TextXAlignment = Enum.TextXAlignment.Left Title.Parent = getgenv().GMK_MainFrame
 local TopBar = Instance.new("Frame") TopBar.Size = UDim2.new(0, 180, 0, 30) TopBar.Position = UDim2.new(0, 170, 0, 0) TopBar.BackgroundTransparency = 1 TopBar.Parent = getgenv().GMK_MainFrame
 local EspTabBtn = Instance.new("TextButton") EspTabBtn.Size = UDim2.new(0, 85, 0, 25) EspTabBtn.Position = UDim2.new(0, 0, 0, 2) EspTabBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 40) EspTabBtn.Text = "ESP" EspTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255) EspTabBtn.Font = Enum.Font.SourceSansBold EspTabBtn.TextSize = 12 EspTabBtn.Parent = TopBar Instance.new("UICorner").CornerRadius = UDim.new(0, 4) EspTabBtn.Parent = EspTabBtn
-local CombatTabBtn = Instance.new("TextButton") CombatTabBtn.Size = UDim2.new(0, 85, 0, 25) CombatTabBtn.Position = UDim2.new(0, 90, 0, 2) CombatTabBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) CombatTabBtn.Text = "COMBAT" CombatTabBtn.TextColor3 = Color3.fromRGB(150, 150, 150) CombatTabBtn.Font = Enum.Font.SourceSansBold CombatTabBtn.TextSize = 12 CombatTabBtn.Parent = TopBar Instance.new("UICorner").CornerRadius = UDim.new(0, 4) CombatTabBtn.Parent = CombatTabBtn
+local CombatTabBtn = Instance.new("TextButton") CombatTabBtn.Size = UDim2.new(0, 85, 0, 25) CombatTabBtn.Position = UDim2.new(0, 90, 0, 2) CombatTabBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25) CombatTabBtn.Text = "COMBAT" CombatTabBtn.TextColor3 = Color3.fromRGB(140, 140, 140) CombatTabBtn.Font = Enum.Font.SourceSansBold CombatTabBtn.TextSize = 12 CombatTabBtn.Parent = TopBar Instance.new("UICorner").CornerRadius = UDim.new(0, 4) CombatTabBtn.Parent = CombatTabBtn
 
 getgenv().GMK_Container = Instance.new("Frame") getgenv().GMK_Container.Size = UDim2.new(1, -20, 1, -40) getgenv().GMK_Container.Position = UDim2.new(0, 10, 0, 35) getgenv().GMK_Container.BackgroundTransparency = 1 getgenv().GMK_Container.Parent = getgenv().GMK_MainFrame
 getgenv().GMK_ActiveObjects = {}
@@ -122,12 +122,12 @@ end
 getgenv().GMK_DrawEspTab()
 EspTabBtn.MouseButton1Click:Connect(function()
     EspTabBtn.BackgroundColor3, EspTabBtn.TextColor3 = Color3.fromRGB(35, 35, 40), Color3.fromRGB(255, 255, 255)
-    CombatTabBtn.BackgroundColor3, CombatTabBtn.TextColor3 = Color3.fromRGB(20, 20, 25), Color3.fromRGB(150, 150, 150)
+    CombatTabBtn.BackgroundColor3, CombatTabBtn.TextColor3 = Color3.fromRGB(20, 20, 25), Color3.fromRGB(140, 140, 140)
     getgenv().GMK_DrawEspTab()
 end)
 CombatTabBtn.MouseButton1Click:Connect(function()
     CombatTabBtn.BackgroundColor3, CombatTabBtn.TextColor3 = Color3.fromRGB(35, 35, 40), Color3.fromRGB(255, 255, 255)
-    EspTabBtn.BackgroundColor3, EspTabBtn.TextColor3 = Color3.fromRGB(20, 20, 25), Color3.fromRGB(150, 150, 150)
+    EspTabBtn.BackgroundColor3, EspTabBtn.TextColor3 = Color3.fromRGB(20, 20, 25), Color3.fromRGB(140, 140, 140)
     getgenv().GMK_DrawCombatTab()
 end)
 getgenv().GMK_GUI_LOADED = true
