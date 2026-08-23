@@ -8,7 +8,6 @@ getgenv().fovCircleVisible = true
 getgenv().fovCircleRadius = 120
 getgenv().hitboxEnabled = true
 getgenv().hitboxSize = 3
-getgenv().SentinelHitChance = 100
 
 local lPlr = game:GetService("Players").LocalPlayer
 getgenv().GMK_TargetParent = game:GetService("CoreGui"):FindFirstChild("RobloxGui") and game:GetService("CoreGui") or lPlr:WaitForChild("PlayerGui")
@@ -155,7 +154,7 @@ local function getSentinelTarget()
                     if onScreen then
                         local mPos = game:GetService("UserInputService"):GetMouseLocation()
                         local mDist = (Vector2.new(screenPos.X, screenPos.Y) - mPos).Magnitude
-                        if mDist < maxDist then maxDist = mDist target = v end
+                        if mDist < maxDist then maxDist = mDist target = head end
                     end
                 end
             end
@@ -171,28 +170,13 @@ game:GetService("RunService").RenderStepped:Connect(function()
         FOVCircle.Color = Color3.fromRGB(0, 255, 120)
         FOVCircle.Position = game:GetService("UserInputService"):GetMouseLocation()
     end
-end)
-
-local MetaTable = getrawmetatable(game)
-if MetaTable and setreadonly then
-    setreadonly(MetaTable, false)
-    local OriginalNamecall = MetaTable.__namecall
-    MetaTable.__namecall = newcclosure(function(Self, ...)
-        local Method = getnamecallmethod()
-        local Args = {...}
-        if getgenv().aimbotEnabled and (Method == "Raycast" or Method == "FindPartOnRay") then
-            local tChar = getSentinelTarget()
-            if tChar and tChar:FindFirstChild("Head") then
-                if math.random(1, 100) <= getgenv().SentinelHitChance then
-                    if Method == "Raycast" then Args = (tChar.Head.Position - Args).Unit * 1000
-                    else Args = Ray.new(cam.CFrame.Position, (tChar.Head.Position - cam.CFrame.Position).Unit * 1000) end
-                end
-            end
+    if getgenv().aimbotEnabled then
+        local t = getSentinelTarget()
+        if t then 
+            cam.CFrame = cam.CFrame:Lerp(CFrame.new(cam.CFrame.Position, t.Position), 0.15) 
         end
-        return OriginalNamecall(Self, unpack(Args))
-    end)
-    setreadonly(MetaTable, true)
-end
+    end
+end)
 getgenv().GMK_AIM_LOADED = true
 while not getgenv().GMK_AIM_LOADED do task.wait(0.1) end
 local lPlr = game:GetService("Players").LocalPlayer
