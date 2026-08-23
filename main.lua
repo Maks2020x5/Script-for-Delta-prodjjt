@@ -147,7 +147,7 @@ titleText.Font = Enum.Font.SourceSansBold
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = titleBar
 
-local bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand", "LeftLowerLeg", "RightLowerLeg"}
+local bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand"}
 
 local function getBestVisibleBone(character)
     if not character or not lPlr.Character then return nil end
@@ -157,9 +157,13 @@ local function getBestVisibleBone(character)
     for _, boneName in ipairs(bonePriority) do
         local part = character:FindFirstChild(boneName)
         if part then
-            local ray = Ray.new(myHead.Position, (part.Position - myHead.Position).Unit * 999)
+            local startPos = myHead.Position
+            local targetPos = part.Position
+            local rayDirection = (targetPos - startPos).Unit * (targetPos - startPos).Magnitude
+            local ray = Ray.new(startPos, rayDirection)
+            
             local hit = workspace:FindPartOnRayWithIgnoreList(ray, {lPlr.Character, cam, character}, false, true)
-            if not hit then
+            if not hit or hit:IsDescendantOf(character) or hit.CanCollide == false or hit.Transparency > 0.8 then
                 return part
             end
         end
@@ -205,6 +209,14 @@ minimizeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+local function cleanAllLootGuis()
+    for _, descendant in pairs(workspace:GetDescendants()) do
+        if descendant:IsA("BillboardGui") and (descendant.Name == "LootTextGui" or descendant.Name == "MineTextGui") then
+            descendant:Destroy()
+        end
+    end
+end
+
 local function createToggle(text, env_val, order)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 180, 0, 35)
@@ -229,6 +241,7 @@ local function createToggle(text, env_val, order)
             btn.Text = text .. ": ВЫКЛ"
             btn.TextColor3 = Color3.fromRGB(200, 200, 200)
             if env_val == "aimbotEnabled" then subFrame.Visible = false end
+            if env_val == "itemEspEnabled" or env_val == "mineEspEnabled" then cleanAllLootGuis() end
         end
     end
     
@@ -292,8 +305,8 @@ runService.RenderStepped:Connect(function()
         local targetPart, fovDist = getTargetData()
         if targetPart and fovDist then
             local fovRatio = 1 - (fovDist / getgenv().aimbotFov)
-            local baseLerp = 0.04
-            local maxLerp = 0.22
+            local baseLerp = 0.05
+            local maxLerp = 0.24
             local dynamicAlpha = baseLerp + (maxLerp - baseLerp) * (fovRatio * fovRatio)
             
             local targetCFrame = CFrame.new(cam.CFrame.Position, targetPart.Position)
@@ -349,6 +362,7 @@ local function applyLightESP(model)
     local nameL = string.lower(model.Name)
     
     if string.find(nameL, "mine") or string.find(nameL, "claymore") or string.find(nameL, "explosive") or string.find(nameL, "растяжка") or string.find(nameL, "mon-50") then
+        if not getgenv().mineEspEnabled then return end
         local p = model:IsA("BasePart") and model or model:FindFirstChildWhichIsA("BasePart")
         if not p or p:FindFirstChild("MineTextGui") then return end
         
@@ -357,17 +371,18 @@ local function applyLightESP(model)
         Instance.new("UICorner").CornerRadius = UDim.new(0, 6) t.Parent = t
         
         task.spawn(function()
-            while model and model.Parent and p and t and b do
-                b.Enabled = getgenv().mineEspEnabled
+            while model and model.Parent and p and t and b and getgenv().mineEspEnabled do
                 local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
-                if myHrp and getgenv().mineEspEnabled then 
+                if myHrp then 
                     t.Text, t.Visible = "💥 МИНА [" .. tostring(math.floor((myHrp.Position - p.Position).Magnitude)) .. "m]", true 
                 else t.Visible = false end
                 task.wait(0.5)
             end
+            if b then b:Destroy() end
         end)
         
     elseif model.Name == "AuroraBox" or model.Name == "BigBox" or string.find(nameL, "safe") or string.find(nameL, "сейф") or string.find(nameL, "loot") or string.find(nameL, "crate") then
+        if not getgenv().itemEspEnabled then return end
         local p = model:IsA("BasePart") and model or model:FindFirstChild("Part") or model:FindFirstChildWhichIsA("BasePart")
         if not p or p:FindFirstChild("LootTextGui") then return end
         
@@ -378,16 +393,14 @@ local function applyLightESP(model)
         t.Text = cleanName Instance.new("UICorner").CornerRadius = UDim.new(0, 6) t.Parent = t
         
         task.spawn(function()
-            while model and model.Parent and p and t and b do
-                b.Enabled = getgenv().itemEspEnabled
-                if getgenv().itemEspEnabled then
-                    local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
-                    if myHrp then 
-                        t.Text, t.Visible = cleanName .. " [" .. tostring(math.floor((myHrp.Position - p.Position).Magnitude)) .. "m]", true
-                    else t.Visible = false end
+            while model and model.Parent and p and t and b and getgenv().itemEspEnabled do
+                local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
+                if myHrp then 
+                    t.Text, t.Visible = cleanName .. " [" .. tostring(math.floor((myHrp.Position - p.Position).Magnitude)) .. "m]", true 
                 else t.Visible = false end
                 task.wait(0.5)
             end
+            if b then b:Destroy() end
         end)
     end
 end
