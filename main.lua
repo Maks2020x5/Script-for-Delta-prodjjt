@@ -284,17 +284,23 @@ createToggle("💥 ESP МИНЫ", "mineEspEnabled", 5)
 
 local function isHoldingGun()
     if not lPlr.Character then return false end
-    local tool = lPlr.Character:FindFirstChildOfClass("Tool")
-    if not tool then return false end
     
-    local nameLower = string.lower(tool.Name)
-    if string.find(nameLower, "knife") or string.find(nameLower, "нож") or string.find(nameLower, "axe") or string.find(nameLower, "топор") or string.find(nameLower, "grenade") or string.find(nameLower, "граната") or string.find(nameLower, "lighter") or string.find(nameLower, "кулак") or string.find(nameLower, "fist") or string.find(nameLower, "med") or string.find(nameLower, "food") or string.find(nameLower, "water") then
+    local item = lPlr.Character:FindFirstChildOfClass("Tool")
+    if not item then
+        for _, child in pairs(lPlr.Character:GetChildren()) do
+            if child:IsA("Model") and (child:FindFirstChild("Ammo") or child:FindFirstChild("Muzzle") or child:FindFirstChild("Handle")) then
+                item = child
+                break
+            end
+        end
+    end
+    if not item then return false end
+    
+    local nameLower = string.lower(item.Name)
+    if string.find(nameLower, "knife") or string.find(nameLower, "нож") or string.find(nameLower, "axe") or string.find(nameLower, "топор") or string.find(nameLower, "grenade") or string.find(nameLower, "граната") or string.find(nameLower, "lighter") or string.find(nameLower, "кулак") or string.find(nameLower, "fist") or string.find(nameLower, "med") or string.find(nameLower, "food") or string.find(nameLower, "water") or string.find(nameLower, "playermanager") then
         return false
     end
     
-    if tool:FindFirstChild("Ammo") or tool:FindFirstChild("GunScript") or tool:FindFirstChild("Setting") or string.find(nameLower, "pistol") or string.find(nameLower, "rifle") or string.find(nameLower, "shotgun") or string.find(nameLower, "sniper") or string.find(nameLower, "pm") or string.find(nameLower, "glock") or string.find(nameLower, "ak") or string.find(nameLower, "m4") then
-        return true
-    end
     return true
 end
 
@@ -317,7 +323,6 @@ local function getTargetData()
                             local fovDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
                             if fovDist <= getgenv().aimbotFov and fovDist < shortestFovDist then
                                 shortestFovDist = fovDist
-                                targetPart = visiblePart
                                 bestPart = visiblePart
                             end
                         end
