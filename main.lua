@@ -3,7 +3,6 @@ getgenv().corpseEspEnabled = true
 getgenv().itemEspEnabled = true
 getgenv().mineEspEnabled = true
 getgenv().aimbotEnabled = true
-getgenv().aimMode = "Sentinel"
 getgenv().aimbotMaxDist = 300
 getgenv().aimbotFov = 120
 getgenv().showFovCircle = true
@@ -13,20 +12,31 @@ local cam = workspace.CurrentCamera
 local runService = game:GetService("RunService")
 local tweenService = game:GetService("TweenService")
 
-local fovCircle = Drawing.new("Circle")
-fovCircle.Visible = getgenv().showFovCircle
-fovCircle.Thickness = 1.5
-fovCircle.Color = Color3.fromRGB(0, 255, 150)
-fovCircle.Transparency = 0.7
-fovCircle.NumSides = 64
-
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DeltaProjectMenu"
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
 if syn and syn.protect_gui then syn.protect_gui(screenGui) end
 screenGui.Parent = game:GetService("CoreGui") or lPlr:WaitForChild("PlayerGui")
+
+local fovFrame = Instance.new("Frame")
+fovFrame.Name = "FovCircle"
+fovFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+fovFrame.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
+fovFrame.BackgroundTransparency = 1
+fovFrame.BorderSizePixel = 0
+fovFrame.Visible = getgenv().showFovCircle
+fovFrame.Parent = screenGui
+
+local fovStroke = Instance.new("UIStroke")
+fovStroke.Color = Color3.fromRGB(0, 255, 150)
+fovStroke.Thickness = 1.5
+fovStroke.Transparency = 0.5
+fovStroke.Parent = fovFrame
+
+local fovCorner = Instance.new("UICorner")
+fovCorner.CornerRadius = UDim.new(1, 0)
+fovCorner.Parent = fovFrame
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
@@ -44,7 +54,7 @@ mainCorner.Parent = mainFrame
 
 local subFrame = Instance.new("Frame")
 subFrame.Name = "SubFrame"
-subFrame.Size = UDim2.new(0, 190, 0, 240)
+subFrame.Size = UDim2.new(0, 190, 0, 180)
 subFrame.Position = UDim2.new(1, 10, 0, 0)
 subFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 subFrame.BorderSizePixel = 0
@@ -70,33 +80,10 @@ subLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 subLayout.SortOrder = Enum.SortOrder.LayoutOrder
 subLayout.Parent = subFrame
 local subPad = Instance.new("Frame")
-subPad.Size = UDim2.new(1, 0, 0, 25)
+subPad.Size = UDim2.new(1, 0, 0, 15)
 subPad.BackgroundTransparency = 1
 subPad.LayoutOrder = 0
 subPad.Parent = subFrame
-
-local modeBtn = Instance.new("TextButton")
-modeBtn.Size = UDim2.new(0, 170, 0, 30)
-modeBtn.Font = Enum.Font.SourceSansBold
-modeBtn.TextSize = 11
-modeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-modeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-modeBtn.Text = "ТИП: " .. getgenv().aimMode
-modeBtn.LayoutOrder = 1
-modeBtn.Parent = subFrame
-
-local modeCorner = Instance.new("UICorner")
-modeCorner.CornerRadius = UDim.new(0, 4)
-modeCorner.Parent = modeBtn
-
-modeBtn.MouseButton1Click:Connect(function()
-    if getgenv().aimMode == "Sentinel" then
-        getgenv().aimMode = "Legit"
-    else
-        getgenv().aimMode = "Sentinel"
-    end
-    modeBtn.Text = "ТИП: " .. getgenv().aimMode
-end)
 
 local function createConfigButton(text, fovVal, distVal, order)
     local btn = Instance.new("TextButton")
@@ -121,9 +108,9 @@ local function createConfigButton(text, fovVal, distVal, order)
     end)
 end
 
-createConfigButton("Предел: ЛЕГИТ (FOV 60 / 150m)", 60, 150, 2)
-createConfigButton("Предел: СРЕДНИЙ (FOV 120 / 300m)", 120, 300, 3)
-createConfigButton("Предел: ЖЕСТКИЙ (FOV 250 / 600m)", 250, 600, 4)
+createConfigButton("Предел: ЛЕГИТ (FOV 60 / 150m)", 60, 150, 1)
+createConfigButton("Предел: СРЕДНИЙ (FOV 120 / 300m)", 120, 300, 2)
+createConfigButton("Предел: ЖЕСТКИЙ (FOV 250 / 600m)", 250, 600, 3)
 
 local fovToggleBtn = Instance.new("TextButton")
 fovToggleBtn.Size = UDim2.new(0, 170, 0, 30)
@@ -132,7 +119,7 @@ fovToggleBtn.TextSize = 11
 fovToggleBtn.BackgroundColor3 = Color3.fromRGB(34, 139, 34)
 fovToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 fovToggleBtn.Text = "КРУГ FOV: ПОКАЗАТЬ"
-fovToggleBtn.LayoutOrder = 5
+fovToggleBtn.LayoutOrder = 4
 fovToggleBtn.Parent = subFrame
 
 local fovToggleCorner = Instance.new("UICorner")
@@ -180,7 +167,7 @@ local lastCacheClear = os.clock()
 local function getVisiblePart(character)
     if not character or not lPlr.Character then return nil end
     local now = os.clock()
-    if now - lastCacheClear > 0.03 then
+    if now - lastCacheClear > 0.05 then
         table.clear(checkCache)
         table.clear(boneCache)
         lastCacheClear = now
@@ -321,36 +308,15 @@ local function getTargetInFov()
     end
     return targetPart
 end
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-    local method = getnamecallmethod()
-    local args = {...}
-    
-    if getgenv().aimbotEnabled and getgenv().aimMode == "Sentinel" and (method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList" or method == "Raycast") then
-        local target = getTargetInFov()
-        if target then
-            if method == "Raycast" and args[1] and args[2] then
-                args[2] = (target.Position - args[1]).Unit * args[2].Magnitude
-                return oldNamecall(self, unpack(args))
-            elseif (method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList") and args[1] then
-                local origin = args[1].Origin
-                local direction = (target.Position - origin).Unit * 999
-                args[1] = Ray.new(origin, direction)
-                return oldNamecall(self, unpack(args))
-            end
-        end
-    end
-    return oldNamecall(self, ...)
-end)
-
 runService.RenderStepped:Connect(function()
-    fovCircle.Visible = getgenv().showFovCircle and getgenv().aimbotEnabled
-    if fovCircle.Visible then
-        fovCircle.Position = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
-        fovCircle.Radius = getgenv().aimbotFov
+    local isCircleVisible = getgenv().showFovCircle and getgenv().aimbotEnabled
+    fovFrame.Visible = isCircleVisible
+    if isCircleVisible then
+        fovFrame.Position = UDim2.new(0, cam.ViewportSize.X / 2, 0, cam.ViewportSize.Y / 2)
+        fovFrame.Size = UDim2.new(0, getgenv().aimbotFov * 2, 0, getgenv().aimbotFov * 2)
     end
     
-    if getgenv().aimbotEnabled and getgenv().aimMode == "Legit" then
+    if getgenv().aimbotEnabled then
         local targetPart = getTargetInFov()
         if targetPart then
             local screenPos, onScreen = cam:WorldToViewportPoint(targetPart.Position)
@@ -455,7 +421,11 @@ local function applyLightESP(model)
     end
 end
 
-workspace.ChildAdded:Connect(applyLightESP)
-for _, v in pairs(workspace:GetDescendants()) do 
-    pcall(function() applyLightESP(v) end) 
-end
+task.spawn(function()
+    workspace.ChildAdded:Connect(applyLightESP)
+    local allDescendants = workspace:GetDescendants()
+    for i, v in ipairs(allDescendants) do
+        pcall(function() applyLightESP(v) end)
+        if i % 150 == 0 then task.wait(0.01) end
+    end
+end)
