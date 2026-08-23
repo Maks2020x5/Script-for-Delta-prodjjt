@@ -293,10 +293,13 @@ local function toggleFpsBoost(enable)
                 effect.Parent = nil
             end
         end
-        for _, part in pairs(workspace:GetDescendants()) do
-            if part:IsA("BasePart") and not part:IsDescendantOf(lPlr.Character) then
-                materialBackup[part] = part.Material
-                part.Material = Enum.Material.SmoothPlastic
+        local mapFolder = workspace:FindFirstChild("Map") or workspace
+        for _, part in pairs(mapFolder:GetDescendants()) do
+            if part:IsA("BasePart") and not part:IsDescendantOf(lPlr.Character) and not part:IsA("MeshPart") and part.Name ~= "Handle" and part.Name ~= "HumanoidRootPart" then
+                if not part.Parent:FindFirstChildOfClass("Humanoid") and not part:IsDescendantOf(cam) then
+                    materialBackup[part] = part.Material
+                    part.Material = Enum.Material.SmoothPlastic
+                end
             end
         end
     else
@@ -431,7 +434,7 @@ local function applyLightESP(model)
             local txt = Instance.new("TextLabel") txt.Size = UDim2.new(1, 0, 1, 0) txt.BackgroundTransparency = 1 txt.TextSize = 13 txt.Font = Enum.Font.SourceSansBold txt.Parent = bGui
             task.spawn(function()
                 local lastUpdate = 0
-                while model and model.Parent and hrp and txt and bGui and hl do
+                while model and model.Parent engine and hrp and txt and bGui and hl do
                     local tickNow = os.clock()
                     if tickNow - lastUpdate > 0.3 then
                         lastUpdate = tickNow
