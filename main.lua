@@ -1,6 +1,7 @@
 getgenv().espEnabled = true
 getgenv().corpseEspEnabled = true
 getgenv().itemEspEnabled = true
+getgenv().mineEspEnabled = true
 getgenv().aimbotEnabled = true
 getgenv().aimbotMaxDist = 1000
 getgenv().aimbotFov = 120
@@ -37,7 +38,7 @@ screenGui.Parent = game:GetService("CoreGui") or lPlr:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 400, 0, 420)
+mainFrame.Size = UDim2.new(0, 200, 0, 360) 
 mainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.BorderSizePixel = 0
@@ -99,8 +100,7 @@ local function createConfigButton(text, fovVal, distVal, order)
         getgenv().aimbotFov = fovVal
         getgenv().aimbotMaxDist = distVal
         btn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-        task.delay(0.2, function() btn.BackgroundColor
-3 = Color3.fromRGB(45, 45, 45) end)
+        task.delay(0.2, function() btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45) end)
     end)
 end
 
@@ -118,7 +118,11 @@ end
 
 local function playHitSound()
     local sound = Instance.new("Sound")
-    sound.SoundId = "rbxassetid://9114223193"; sound.Volume = 0.4; sound.PlayOnRemove = true; sound.Parent = soundService; sound:Destroy()
+    sound.SoundId = "rbxassetid://9114223193"
+    sound.Volume = 0.4
+    sound.PlayOnRemove = true
+    sound.Parent = soundService
+    sound:Destroy()
 end
 
 local fovToggleBtn = Instance.new("TextButton")
@@ -164,15 +168,16 @@ local lastCacheReset = os.clock()
 local targetHealthTracker = {}
 
 local titleText = Instance.new("TextLabel")
-titleText.Size = UDim2.new(0.8, 0, 1, 0)
+titleText.Size = UDim2.new(0.7, 0, 1, 0)
 titleText.Position = UDim2.new(0.05, 0, 0, 0)
 titleText.BackgroundTransparency = 1
 titleText.Text = "DELTA CHEATS"
 titleText.TextColor3 = Color3.fromRGB(0, 255, 150)
-titleText.TextSize = 14
+titleText.TextSize = 13
 titleText.Font = Enum.Font.SourceSansBold
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = titleBar
+
 local dragging, dragInput, dragStart, startPos
 titleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -217,7 +222,7 @@ local function getTargetData()
     local bestPart = nil; local shortestFovDist = math.huge; local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
     if not myHrp then return nil, nil end
     for _, v in pairs(getAllCharacters()) do
-        if v.Name ~= lPlr.Name and v.Humanoid.Health > 0 then
+        if v.Name ~= lPlr.Name and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
             local visiblePart = getBestVisibleBone(v)
             if visiblePart then
                 local screenPos, onScreen = cam:WorldToViewportPoint(visiblePart.Position)
@@ -237,7 +242,7 @@ end
 
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
-minimizeBtn.Position = UDim2.new(0.9, 0, 0.08, 0)
+minimizeBtn.Position = UDim2.new(0.8, 0, 0.08, 0)
 minimizeBtn.BackgroundTransparency = 1
 minimizeBtn.Text = "—"
 minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -247,27 +252,25 @@ minimizeBtn.Parent = titleBar
 
 local contentFrame = Instance.new("Frame")
 contentFrame.Name = "Content"
-contentFrame.Size = UDim2.new(1, 0, 0, 380)
+contentFrame.Size = UDim2.new(1, 0, 0, 320)
 contentFrame.Position = UDim2.new(0, 0, 0, 35)
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
-
-local layout = Instance.new("UIGridLayout")
-layout.Padding = UDim2.new(0, 10, 0, 10)
-layout.CellSize = UDim2.new(0, 185, 0, 32)
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 4)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Parent = contentFrame
+
 local isMinimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
-        contentFrame.Visible = false; subFrame.Visible = false; mainFrame.Size = UDim2.new(0, 400, 0, 35); minimizeBtn.Text = "+"
+        contentFrame.Visible = false; subFrame.Visible = false; mainFrame.Size = UDim2.new(0, 200, 0, 35); minimizeBtn.Text = "+"
     else
-        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 400, 0, 420); minimizeBtn.Text = "—"
+        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 200, 0, 360); minimizeBtn.Text = "—"
     end
 end)
-
 local function makeButtonDraggable(button)
     local bDragging, bDragInput, bDragStart, bStartPos
     button.InputBegan:Connect(function(input)
@@ -278,7 +281,7 @@ local function makeButtonDraggable(button)
     end)
     button.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then bDragInput = input end end)
     inputService.InputChanged:Connect(function(input)
-        if input == bDragInput and bDragging and bStartPos then
+        if input == bDragInput and bDragging then
             local delta = input.Position - bDragStart
             button.Position = UDim2.new(bStartPos.X.Scale, bStartPos.X.Offset + delta.X, bStartPos.Y.Scale, bStartPos.Y.Offset + delta.Y)
         end
@@ -342,7 +345,7 @@ makeButtonDraggable(zoomActionButton)
 local extSliderFrame = Instance.new("Frame")
 extSliderFrame.Name = "ExtSliderFrame"
 extSliderFrame.Size = UDim2.new(0, 130, 0, 14)
-extSliderFrame.Position = UDim2.new(0, -140, 0, 20) 
+extSliderFrame.Position = UDim2.new(0, -140, 0, 20)
 extSliderFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 extSliderFrame.Visible = false
 extSliderFrame.Parent = zoomActionButton
@@ -354,7 +357,6 @@ extSliderBtn.BackgroundColor3 = Color3.fromRGB(0, 220, 255)
 extSliderBtn.Text = ""
 extSliderBtn.Parent = extSliderFrame
 Instance.new("UICorner", extSliderBtn).CornerRadius = UDim.new(0, 4)
-
 local extSliderLabel = Instance.new("TextLabel")
 extSliderLabel.Size = UDim2.new(0, 130, 0, 16)
 extSliderLabel.Position = UDim2.new(0, 0, 0, -18)
@@ -388,6 +390,7 @@ local function turnOffNvg()
     actionButton.TextColor3 = Color3.fromRGB(0, 255, 0)
     if not thermalActive then resetLightingEffects() end
 end
+
 actionButton.MouseButton1Click:Connect(function()
     nvgActive = not nvgActive
     if nvgActive then
@@ -443,11 +446,11 @@ zoomActionButton.MouseButton1Click:Connect(function()
     if zoomActive then
         zoomActionButton.BackgroundColor3 = Color3.fromRGB(0, 120, 150)
         zoomActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        extSliderFrame.Visible = true 
+        extSliderFrame.Visible = true
     else
         zoomActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
         zoomActionButton.TextColor3 = Color3.fromRGB(0, 220, 255)
-        extSliderFrame.Visible = false 
+        extSliderFrame.Visible = false
     end
 end)
 
@@ -467,18 +470,23 @@ local function toggleFpsBoost(enable)
 end
 
 local function destroyAllLootGuis()
-    for _, v in pairs(workspace:GetDescendants()) do if v:IsA("BillboardGui") and (v.Name == "LootTextGui") then v:Destroy() end end
+    for _, v in pairs(workspace:GetDescendants()) do if v:IsA("BillboardGui") and (v.Name == "LootTextGui" or v.Name == "MineTextGui") then v:Destroy() end end
 end
 
 local function createToggle(text, env_val, order)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 185, 0, 32); btn.Font = Enum.Font.SourceSansBold; btn.TextSize = 13; btn.BorderSizePixel = 0; btn.LayoutOrder = order; btn.Parent = contentFrame
-    local btnCorner = Instance.new("UICorner"); btnCorner.CornerRadius = UDim.new(0, 6); btnCorner.Parent = btn
+    btn.Size = UDim2.new(0, 180, 0, 26) 
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 12
+    btn.BorderSizePixel = 0
+    btn.LayoutOrder = order
+    btn.Parent = contentFrame
+    local btnCorner = Instance.new("UICorner"); btnCorner.CornerRadius = UDim.new(0, 5); btnCorner.Parent = btn
     
     local function updateVisuals()
         if getgenv()[env_val] then
             btn.BackgroundColor3 = Color3.fromRGB(34, 139, 34); btn.Text = text .. ": ВКЛ"; btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            if env_val == "aimbotEnabled" then subFrame.Visible = true end
+            if env_val == "aimbotEnabled" and not isMinimized then subFrame.Visible = true end
             if env_val == "nvgButtonEnabled" then actionButton.Visible = true end
             if env_val == "thermalButtonEnabled" then thermalActionButton.Visible = true end
             if env_val == "zoomButtonEnabled" then zoomActionButton.Visible = true end
@@ -500,7 +508,7 @@ local function createToggle(text, env_val, order)
                 extSliderFrame.Visible = false
                 zoomActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
             end
-            if env_val == "itemEspEnabled" then destroyAllLootGuis() end
+            if env_val == "itemEspEnabled" or env_val == "mineEspEnabled" then destroyAllLootGuis() end
         end
     end
     updateVisuals(); btn.MouseButton1Click:Connect(function() getgenv()[env_val] = not getgenv()[env_val]; updateVisuals() end)
@@ -510,10 +518,12 @@ createToggle("🎯 АИМБОТ", "aimbotEnabled", 1)
 createToggle("👤 ESP ИГРОКИ", "espEnabled", 2)
 createToggle("💀 ESP ТРУПЫ", "corpseEspEnabled", 3)
 createToggle("📦 ESP ЛУТ / КЕЙСЫ", "itemEspEnabled", 4)
+createToggle("💥 ESP МИНЫ", "mineEspEnabled", 5)
 createToggle("🟢 ПНВ КНОПКА", "nvgButtonEnabled", 6)
 createToggle("🔥 ТЕПЛОВИЗОР ФУНКЦИЯ", "thermalButtonEnabled", 7)
 createToggle("🔭 ЗУМ ОПТИКА КНОПКА", "zoomButtonEnabled", 8)
 createToggle("⚡ ФПС БУСТ", "fpsBoostEnabled", 9)
+
 local slidingZoom = false
 extSliderBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slidingZoom = true end end)
 inputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slidingZoom = false end end)
@@ -564,6 +574,9 @@ end)
 local function applyLightESP(m)
     if not m or not m.Parent or not m:IsA("Model") or not m:FindFirstChild("Humanoid") or not m:FindFirstChild("HumanoidRootPart") or m.Name == lPlr.Name then return end
     local hrp, hum = m.HumanoidRootPart, m.Humanoid; targetHealthTracker[m] = hum.Health
+    
+    if m:FindFirstChild("TextEspGui") then m.TextEspGui:Destroy() end
+    
     hum.HealthChanged:Connect(function(nh)
         local oh = targetHealthTracker[m] or nh
         if nh < oh and getgenv().aimbotEnabled and m:FindFirstChild("Head") then
@@ -574,34 +587,33 @@ local function applyLightESP(m)
     end)
     local hl = m:FindFirstChild("MobileESP") or Instance.new("Highlight")
     if not hl.Parent then hl.Name = "MobileESP"; hl.Parent = m; hl.FillTransparency = 1; hl.OutlineTransparency = 0 end
-    local bGui = hrp:FindFirstChild("TextEspGui") or Instance.new("BillboardGui")
-    if not bGui.Parent then
-        bGui.Name = "TextEspGui"; bGui.AlwaysOnTop = true; bGui.MaxDistance = 4000; bGui.Size = UDim2.new(0, 140, 0, 25); bGui.StudsOffset = Vector3.new(0, 3, 0); bGui.Parent = hrp
-        local txt = Instance.new("TextLabel", bGui); txt.Size = UDim2.new(1, 0, 1, 0); txt.BackgroundTransparency = 1; txt.TextSize = 13; txt.Font = Enum.Font.SourceSansBold
-        task.spawn(function()
-            while m and m.Parent and hrp and txt and bGui and hl do
-                local isDead = hum.Health <= 0; local state = isDead and getgenv().corpseEspEnabled or getgenv().espEnabled
-                hl.Enabled, bGui.Enabled = state, state
-                if state and lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart") then
-                    local d = math.floor((lPlr.Character.HumanoidRootPart.Position - hrp.Position).Magnitude)
-                    if d <= 4000 then
-                        local isReal = game.Players:FindFirstChild(m.Name) ~= nil; local base = isDead and "[ТРУП]" or isReal and "[ИГРОК]" or "[БОТ / ДИКИЙ]"
-                        local c = isDead and Color3.fromRGB(150, 150, 150) or getBestVisibleBone(m) and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-                        
-                        if thermalActive and not isDead then 
-                            hl.FillColor = Color3.fromRGB(255, 80, 0)
-                            hl.FillTransparency = 0.25
-                            c = Color3.fromRGB(255, 230, 0) 
-                        else 
-                            hl.FillTransparency = 1 
-                        end
-                        hl.OutlineColor, txt.TextColor3 = c, c; txt.Text = base .. " " .. tostring(d) .. "m" .. (isDead and "" or " [" .. math.floor(hum.Health) .. " HP]"); txt.Visible = true
-                    else txt.Visible = false end
+    local bGui = Instance.new("BillboardGui")
+    bGui.Name = "TextEspGui"; bGui.AlwaysOnTop = true; bGui.MaxDistance = 4000; bGui.Size = UDim2.new(0, 140, 0, 25); bGui.StudsOffset = Vector3.new(0, 3, 0); bGui.Parent = hrp
+    local txt = Instance.new("TextLabel", bGui); txt.Size = UDim2.new(1, 0, 1, 0); txt.BackgroundTransparency = 1; txt.TextSize = 13; txt.Font = Enum.Font.SourceSansBold
+    
+    task.spawn(function()
+        while m and m.Parent and hrp and txt and bGui and hl do
+            local isDead = hum.Health <= 0; local state = isDead and getgenv().corpseEspEnabled or getgenv().espEnabled
+            hl.Enabled, bGui.Enabled = state, state
+            if state and lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart") then
+                local d = math.floor((lPlr.Character.HumanoidRootPart.Position - hrp.Position).Magnitude)
+                if d <= 4000 then
+                    local isReal = game.Players:FindFirstChild(m.Name) ~= nil; local base = isDead and "[ТРУП]" or isReal and "[ИГРОК]" or "[БОТ / ДИКИЙ]"
+                    local c = isDead and Color3.fromRGB(150, 150, 150) or getBestVisibleBone(m) and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+                    
+                    if thermalActive and not isDead then 
+                        hl.FillColor = Color3.fromRGB(255, 80, 0)
+                        hl.FillTransparency = 0.25
+                        c = Color3.fromRGB(255, 230, 0) 
+                    else 
+                        hl.FillTransparency = 1 
+                    end
+                    hl.OutlineColor, txt.TextColor3 = c, c; txt.Text = base .. " " .. tostring(d) .. "m" .. (isDead and "" or " [" .. math.floor(hum.Health) .. " HP]"); txt.Visible = true
                 else txt.Visible = false end
-                task.wait(0.3)
-            end
-        end)
-    end
+            else txt.Visible = false end
+            task.wait(0.3)
+        end
+    end)
 end
 
 workspace.DescendantAdded:Connect(applyLightESP)
@@ -611,25 +623,28 @@ task.spawn(function()
             for _, descendant in pairs(workspace:GetDescendants()) do
                 local nameLower = string.lower(descendant.Name)
                 local isLoot = string.find(nameLower, "^aurora") or string.find(nameLower, "^case") or string.find(nameLower, "^safe") or string.find(nameLower, "^сейф") or string.find(nameLower, "^box")
+                local isMine = string.find(nameLower, "^mine") or string.find(nameLower, "^landmine") or string.find(nameLower, "^tripwire") or string.find(nameLower, "^мина") or string.find(nameLower, "^растяжка")
                 local isDrop = string.find(nameLower, "^drop") or string.find(nameLower, "^airdrop") or string.find(nameLower, "^supply")
-                if (isLoot and getgenv().itemEspEnabled) or (isDrop and getgenv().itemEspEnabled) then
+                if (isLoot and getgenv().itemEspEnabled) or (isMine and getgenv().mineEspEnabled) or (isDrop and getgenv().itemEspEnabled) then
                     local p = descendant:IsA("BasePart") and descendant or descendant:FindFirstChildWhichIsA("BasePart")
                     if p then
                         local dist = math.floor((lPlr.Character.HumanoidRootPart.Position - p.Position).Magnitude)
                         if dist <= 4000 then
-                            local guiName = "LootTextGui"; local b = p:FindFirstChild(guiName)
+                            local guiName = isMine and "MineTextGui" or "LootTextGui"; local b = p:FindFirstChild(guiName)
                             if not b then
                                 b = Instance.new("BillboardGui", p); b.Name = guiName; b.AlwaysOnTop = true; b.MaxDistance = 4000; b.Size = UDim2.new(0, 140, 0, 25); b.StudsOffset = Vector3.new(0, 2, 0)
                                 local t = Instance.new("TextLabel", b); t.Size = UDim2.new(1, 0, 1, 0); t.BackgroundTransparency = 0.3; t.BackgroundColor3 = Color3.fromRGB(20, 20, 20); t.TextSize = 11; t.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", t).CornerRadius = UDim.new(0, 6)
                             end
                             local cleanName = "📦 ОБЪЕКТ"
-                            if isDrop then cleanName = "✈️ АИРДРОП"; b.TextLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+                            if isMine then cleanName = "💥 МИНА / РАСТЯЖКА"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+                            elseif isDrop then cleanName = "✈️ АИРДРОП"; b.TextLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
                             elseif string.find(nameLower, "^aurora") then cleanName = "✨ АВРОРА КЕЙС"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
                             elseif string.find(nameLower, "^safe") or string.find(nameLower, "^сейф") then cleanName = "🗄️ СЕЙФ"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 165, 0)
                             else cleanName = "🎁 КЕЙС / ЯЩИК"; b.TextLabel.TextColor3 = Color3.fromRGB(0, 255, 100) end
                             b.TextLabel.Text = cleanName .. " [" .. tostring(dist) .. "m]"
                         else
                             if p:FindFirstChild("LootTextGui") then p.LootTextGui:Destroy() end
+                            if p:FindFirstChild("MineTextGui") then p.MineTextGui:Destroy() end
                         end
                     end
                 end
