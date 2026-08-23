@@ -294,11 +294,16 @@ local function toggleFpsBoost(enable)
             end
         end
         local mapFolder = workspace:FindFirstChild("Map") or workspace
-        for _, part in pairs(mapFolder:GetDescendants()) do
-            if part:IsA("BasePart") and not part:IsDescendantOf(lPlr.Character) and not part:IsA("MeshPart") and part.Name ~= "Handle" and part.Name ~= "HumanoidRootPart" then
-                if not part.Parent:FindFirstChildOfClass("Humanoid") and not part:IsDescendantOf(cam) then
-                    materialBackup[part] = part.Material
-                    part.Material = Enum.Material.SmoothPlastic
+        for _, obj in pairs(mapFolder:GetChildren()) do
+            if obj:IsA("BasePart") and obj.Material ~= Enum.Material.SmoothPlastic then
+                materialBackup[obj] = obj.Material
+                obj.Material = Enum.Material.SmoothPlastic
+            elseif obj:IsA("Model") or obj:IsA("Folder") then
+                for _, part in pairs(obj:GetChildren()) do
+                    if part:IsA("BasePart") and part.Material ~= Enum.Material.SmoothPlastic and part.Name ~= "Handle" and part.CanCollide == true and part.Transparency < 0.2 then
+                        materialBackup[part] = part.Material
+                        part.Material = Enum.Material.SmoothPlastic
+                    end
                 end
             end
         end
@@ -466,7 +471,7 @@ task.spawn(function()
     while true do
         if getgenv().itemEspEnabled then
             local mapFolder = workspace:FindFirstChild("Map") or workspace
-            for _, descendant in pairs(mapFolder:GetChildren()) do
+            for _, descendant in pairs(mapFolder:GetDescendants()) do
                 if descendant.Name == "AuroraBox" or descendant.Name == "BigBox" or string.find(string.lower(descendant.Name), "safe") or string.find(string.lower(descendant.Name), "сейф") then
                     local p = descendant:IsA("BasePart") and descendant or descendant:FindFirstChild("Part") or descendant:FindFirstChildWhichIsA("BasePart")
                     if p and not p:FindFirstChild("LootTextGui") and getgenv().itemEspEnabled then
