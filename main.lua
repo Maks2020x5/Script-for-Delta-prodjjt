@@ -3,13 +3,22 @@ getgenv().corpseEspEnabled = true
 getgenv().itemEspEnabled = true
 getgenv().mineEspEnabled = true
 getgenv().aimbotEnabled = true
-getgenv().aimbotMaxDist = 600
+getgenv().aimMode = "Legit"
+getgenv().aimbotMaxDist = 300
+getgenv().aimbotFov = 120
+getgenv().showFovCircle = true
 
 local lPlr = game:GetService("Players").LocalPlayer
 local cam = workspace.CurrentCamera
 local runService = game:GetService("RunService")
 local tweenService = game:GetService("TweenService")
-local inputService = game:GetService("UserInputService")
+
+local fovCircle = Drawing.new("Circle")
+fovCircle.Visible = getgenv().showFovCircle
+fovCircle.Thickness = 1.5
+fovCircle.Color = Color3.fromRGB(0, 255, 150)
+fovCircle.Transparency = 0.7
+fovCircle.NumSides = 64
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DeltaProjectMenu"
@@ -33,6 +42,115 @@ local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 8)
 mainCorner.Parent = mainFrame
 
+local subFrame = Instance.new("Frame")
+subFrame.Name = "SubFrame"
+subFrame.Size = UDim2.new(0, 190, 0, 240)
+subFrame.Position = UDim2.new(1, 10, 0, 0)
+subFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+subFrame.BorderSizePixel = 0
+subFrame.Visible = true
+subFrame.Parent = mainFrame
+
+local subCorner = Instance.new("UICorner")
+subCorner.CornerRadius = UDim.new(0, 8)
+subCorner.Parent = subFrame
+
+local subTitle = Instance.new("TextLabel")
+subTitle.Size = UDim2.new(1, 0, 0, 30)
+subTitle.BackgroundTransparency = 1
+subTitle.Text = "ТОНКИЕ НАСТРОЙКИ АИМА"
+subTitle.TextColor3 = Color3.fromRGB(255, 255, 0)
+subTitle.TextSize = 12
+subTitle.Font = Enum.Font.SourceSansBold
+subTitle.Parent = subFrame
+
+local subLayout = Instance.new("UIListLayout")
+subLayout.Padding = UDim.new(0, 5)
+subLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+subLayout.SortOrder = Enum.SortOrder.LayoutOrder
+subLayout.Parent = subFrame
+
+local subPad = Instance.new("Frame")
+subPad.Size = UDim2.new(1, 0, 0, 25)
+subPad.BackgroundTransparency = 1
+subPad.LayoutOrder = 0
+subPad.Parent = subFrame
+
+local modeBtn = Instance.new("TextButton")
+modeBtn.Size = UDim2.new(0, 170, 0, 30)
+modeBtn.Font = Enum.Font.SourceSansBold
+modeBtn.TextSize = 11
+modeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+modeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+modeBtn.Text = "ТИП: " .. getgenv().aimMode
+modeBtn.LayoutOrder = 1
+modeBtn.Parent = subFrame
+
+local modeCorner = Instance.new("UICorner")
+modeCorner.CornerRadius = UDim.new(0, 4)
+modeCorner.Parent = modeBtn
+
+modeBtn.MouseButton1Click:Connect(function()
+    if getgenv().aimMode == "Legit" then
+        getgenv().aimMode = "Sentinel"
+    else
+        getgenv().aimMode = "Legit"
+    end
+    modeBtn.Text = "ТИП: " .. getgenv().aimMode
+end)
+
+local function createConfigButton(text, fovVal, distVal, order)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 170, 0, 30)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 11
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Text = text
+    btn.LayoutOrder = order
+    btn.Parent = subFrame
+    
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 4)
+    c.Parent = btn
+    
+    btn.MouseButton1Click:Connect(function()
+        getgenv().aimbotFov = fovVal
+        getgenv().aimbotMaxDist = distVal
+        btn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+        task.delay(0.2, function() btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45) end)
+    end)
+end
+
+createConfigButton("Предел: ЛЕГИТ (FOV 60 / 150m)", 60, 150, 2)
+createConfigButton("Предел: СРЕДНИЙ (FOV 120 / 300m)", 120, 300, 3)
+createConfigButton("Предел: ЖЕСТКИЙ (FOV 250 / 600m)", 250, 600, 4)
+
+local fovToggleBtn = Instance.new("TextButton")
+fovToggleBtn.Size = UDim2.new(0, 170, 0, 30)
+fovToggleBtn.Font = Enum.Font.SourceSansBold
+fovToggleBtn.TextSize = 11
+fovToggleBtn.BackgroundColor3 = Color3.fromRGB(34, 139, 34)
+fovToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+fovToggleBtn.Text = "КРУГ FOV: ПОКАЗАТЬ"
+fovToggleBtn.LayoutOrder = 5
+fovToggleBtn.Parent = subFrame
+
+local fovToggleCorner = Instance.new("UICorner")
+fovToggleCorner.CornerRadius = UDim.new(0, 4)
+fovToggleCorner.Parent = fovToggleBtn
+
+fovToggleBtn.MouseButton1Click:Connect(function()
+    getgenv().showFovCircle = not getgenv().showFovCircle
+    if getgenv().showFovCircle then
+        fovToggleBtn.BackgroundColor3 = Color3.fromRGB(34, 139, 34)
+        fovToggleBtn.Text = "КРУГ FOV: ПОКАЗАТЬ"
+    else
+        fovToggleBtn.BackgroundColor3 = Color3.fromRGB(139, 0, 0)
+        fovToggleBtn.Text = "КРУГ FOV: СКРЫТЬ"
+    end
+end)
+
 local titleBar = Instance.new("Frame")
 titleBar.Name = "TitleBar"
 titleBar.Size = UDim2.new(1, 0, 0, 35)
@@ -54,7 +172,6 @@ titleText.TextSize = 14
 titleText.Font = Enum.Font.SourceSansBold
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = titleBar
-
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
 minimizeBtn.Position = UDim2.new(0.83, 0, 0.08, 0)
@@ -83,10 +200,12 @@ minimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
         contentFrame.Visible = false
+        subFrame.Visible = false
         mainFrame.Size = UDim2.new(0, 200, 0, 35)
         minimizeBtn.Text = "+"
     else
         contentFrame.Visible = true
+        subFrame.Visible = getgenv().aimbotEnabled
         mainFrame.Size = UDim2.new(0, 200, 0, 290)
         minimizeBtn.Text = "—"
     end
@@ -110,10 +229,12 @@ local function createToggle(text, env_val, order)
             btn.BackgroundColor3 = Color3.fromRGB(34, 139, 34)
             btn.Text = text .. ": ВКЛ"
             btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            if env_val == "aimbotEnabled" and not isMinimized then subFrame.Visible = true end
         else
             btn.BackgroundColor3 = Color3.fromRGB(139, 0, 0)
             btn.Text = text .. ": ВЫКЛ"
             btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+            if env_val == "aimbotEnabled" then subFrame.Visible = false end
         end
     end
     
@@ -136,24 +257,52 @@ createToggle("👤 ESP ИГРОКИ", "espEnabled", 2)
 createToggle("💀 ESP ТРУПЫ", "corpseEspEnabled", 3)
 createToggle("📦 ESP ЛУТ (КЕЙСЫ)", "itemEspEnabled", 4)
 createToggle("💥 ESP МИНЫ", "mineEspEnabled", 5)
+local function checkPlayerVisibility(character)
+    if not character then return false end
+    local head = character:FindFirstChild("Head")
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    local foot = character:FindFirstChild("LeftFoot") or character:FindFirstChild("Left Leg")
+    
+    local points = {}
+    if head then table.insert(points, head.Position) end
+    if hrp then table.insert(points, hrp.Position) end
+    if foot then table.insert(points, foot.Position) end
+    
+    if #points == 0 then return false end
+    local ignoreList = {lPlr.Character, cam}
+    local obscuringParts = cam:GetPartsObscuringTarget(points, ignoreList)
+    
+    return #obscuringParts <= 1
+end
 
-local function getSentinelTarget()
+local function getSilentTarget()
     local target = nil
-    local maxDist = getgenv().aimbotMaxDist
+    local shortestDist = math.huge
     local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
     if not myHrp then return nil end
     
     for _, v in pairs(workspace:GetChildren()) do
         if v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Name ~= lPlr.Name then
-            if v.Humanoid.Health > 0 then
-                local dist = (myHrp.Position - v.HumanoidRootPart.Position).Magnitude
-                if dist < maxDist then
-                    local head = v:FindFirstChild("Head")
-                    if head then
-                        local _, onScreen = cam:WorldToViewportPoint(head.Position)
-                        if onScreen then
-                            maxDist = dist
-                            target = head
+            if v.Humanoid.Health > 0 and checkPlayerVisibility(v) then
+                local head = v:FindFirstChild("Head")
+                if head then
+                    local screenPos, onScreen = cam:WorldToViewportPoint(head.Position)
+                    if onScreen then
+                        local worldDist = (myHrp.Position - head.Position).Magnitude
+                        if worldDist <= getgenv().aimbotMaxDist then
+                            if getgenv().aimMode == "Legit" then
+                                local mousePos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+                                local fovDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                                if fovDist <= getgenv().aimbotFov and fovDist < shortestDist then
+                                    shortestDist = fovDist
+                                    target = head
+                                end
+                            else
+                                if worldDist < shortestDist then
+                                    shortestDist = worldDist
+                                    target = head
+                                end
+                            end
                         end
                     end
                 end
@@ -163,13 +312,28 @@ local function getSentinelTarget()
     return target
 end
 
-runService.RenderStepped:Connect(function()
-    if getgenv().aimbotEnabled and cam then
-        local t = getSentinelTarget()
-        if t and lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart") then 
-            local targetTargetCFrame = CFrame.new(cam.CFrame.Position, t.Position)
-            cam.CFrame = cam.CFrame:Lerp(targetTargetCFrame, 0.15) 
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+    
+    if getgenv().aimbotEnabled and (method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList" or method == "Raycast") then
+        local target = getSilentTarget()
+        if target then
+            if method == "Raycast" then
+                return RaycastResult.new() 
+            end
+            return target, target.Position, Vector3.new(0, 1, 0), target.Material
         end
+    end
+    return oldNamecall(self, ...)
+end)
+
+runService.RenderStepped:Connect(function()
+    fovCircle.Visible = getgenv().showFovCircle and getgenv().aimbotEnabled
+    if fovCircle.Visible then
+        fovCircle.Position = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+        fovCircle.Radius = getgenv().aimbotFov
     end
 end)
 
@@ -200,8 +364,18 @@ local function applyLightESP(model)
                         local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
                         if myHrp then
                             local d = math.floor((myHrp.Position - hrp.Position).Magnitude)
+                            local isVisible = checkPlayerVisibility(model)
                             local base = isDead and "[ТРУП]" or game.Players:FindFirstChild(model.Name) and "[ИГРОК]" or "[БОТ]"
-                            local c = isDead and Color3.fromRGB(150, 150, 150) or Color3.fromRGB(255, 0, 0)
+                            
+                            local c
+                            if isDead then
+                                c = Color3.fromRGB(150, 150, 150)
+                            elseif isVisible then
+                                c = Color3.fromRGB(0, 255, 0)
+                            else
+                                c = Color3.fromRGB(255, 0, 0)
+                            end
+                            
                             hl.OutlineColor, txt.TextColor3 = c, c
                             txt.Text = base .. " " .. tostring(d) .. "m"
                             txt.Visible = true
