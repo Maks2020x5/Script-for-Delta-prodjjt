@@ -28,7 +28,6 @@ fovCircle.Thickness = 1.5
 fovCircle.Color = Color3.fromRGB(0, 255, 150)
 fovCircle.Transparency = 0.7
 fovCircle.NumSides = 48
-
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DeltaProjectMenu_" .. math.random(100, 999)
 screenGui.ResetOnSpawn = false
@@ -38,8 +37,7 @@ screenGui.Parent = game:GetService("CoreGui") or lPlr:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
--- ИСПРАВЛЕНО: ГУИ расширено в 2 раза (было 200, стало 400 по оси X)
-mainFrame.Size = UDim2.new(0, 400, 0, 420)
+mainFrame.Size = UDim2.new(0, 380, 0, 420)
 mainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.BorderSizePixel = 0
@@ -108,19 +106,6 @@ createConfigButton("Предел: ЛЕГИТ (FOV 60 / 150m)", 60, 150, 1)
 createConfigButton("Предел: СРЕДНИЙ (FOV 120 / 400m)", 120, 400, 2)
 createConfigButton("Предел: МАКСИМУМ (FOV 250 / 1000m)", 250, 1000, 3)
 
-local function getAllCharacters()
-    local list = {}
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then table.insert(list, v) end
-    end
-    return list
-end
-
-local function playHitSound()
-    local sound = Instance.new("Sound")
-    sound.SoundId = "rbxassetid://9114223193"; sound.Volume = 0.4; sound.PlayOnRemove = true; sound.Parent = soundService; sound:Destroy()
-end
-
 local fovToggleBtn = Instance.new("TextButton")
 fovToggleBtn.Size = UDim2.new(0, 170, 0, 30)
 fovToggleBtn.Font = Enum.Font.SourceSansBold
@@ -173,6 +158,7 @@ titleText.TextSize = 14
 titleText.Font = Enum.Font.SourceSansBold
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = titleBar
+
 local dragging, dragInput, dragStart, startPos
 titleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -187,54 +173,6 @@ inputService.InputChanged:Connect(function(input)
         mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-
-local function getBestVisibleBone(character)
-    if not character or not lPlr.Character then return nil end
-    local now = os.clock()
-    if now - lastCacheReset > 0.05 then table.clear(wallCheckCache) lastCacheReset = now end
-    if wallCheckCache[character] ~= nil then return wallCheckCache[character] end
-    local myHead = lPlr.Character:FindFirstChild("Head")
-    if not myHead then return nil end
-    local rayParams = RaycastParams.new()
-    rayParams.FilterType = Enum.RaycastFilterType.Exclude
-    rayParams.FilterDescendantsInstances = {lPlr.Character, cam, character}
-    rayParams.IgnoreWater = true
-    for _, boneName in ipairs(bonePriority) do
-        local part = character:FindFirstChild(boneName)
-        if part then
-            local origin = myHead.Position
-            local direction = part.Position - origin
-            local cast = workspace:Raycast(origin, direction, rayParams)
-            if not cast or cast.Instance.CanCollide == false or cast.Instance.Transparency > 0.7 then
-                wallCheckCache[character] = part; return part
-            end
-        end
-    end
-    wallCheckCache[character] = false; return nil
-end
-
-local function getTargetData()
-    local bestPart = nil; local shortestFovDist = math.huge; local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
-    if not myHrp then return nil, nil end
-    for _, v in pairs(getAllCharacters()) do
-        if v.Name ~= lPlr.Name and v.Humanoid.Health > 0 then
-            local visiblePart = getBestVisibleBone(v)
-            if visiblePart then
-                local screenPos, onScreen = cam:WorldToViewportPoint(visiblePart.Position)
-                if onScreen then
-                    local worldDist = (myHrp.Position - visiblePart.Position).Magnitude
-                    if worldDist <= getgenv().aimbotMaxDist then
-                        local mousePos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
-                        local fovDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                        if fovDist <= getgenv().aimbotFov and fovDist < shortestFovDist then shortestFovDist = fovDist; bestPart = visiblePart end
-                    end
-                end
-            end
-        end
-    end
-    return bestPart, shortestFovDist
-end
-
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
 minimizeBtn.Position = UDim2.new(0.9, 0, 0.08, 0)
@@ -254,17 +192,18 @@ contentFrame.Parent = mainFrame
 
 local layout = Instance.new("UIGridLayout")
 layout.Padding = UDim2.new(0, 10, 0, 10)
-layout.CellSize = UDim2.new(0, 185, 0, 32)
+layout.CellSize = UDim2.new(0, 175, 0, 32)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Parent = contentFrame
+
 local isMinimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
-        contentFrame.Visible = false; subFrame.Visible = false; mainFrame.Size = UDim2.new(0, 400, 0, 35); minimizeBtn.Text = "+"
+        contentFrame.Visible = false; subFrame.Visible = false; mainFrame.Size = UDim2.new(0, 380, 0, 35); minimizeBtn.Text = "+"
     else
-        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 400, 0, 420); minimizeBtn.Text = "—"
+        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 380, 0, 420); minimizeBtn.Text = "—"
     end
 end)
 
@@ -338,12 +277,10 @@ zoomStroke.Color = Color3.fromRGB(0, 220, 255)
 zoomStroke.Thickness = 2
 zoomStroke.Parent = zoomActionButton
 makeButtonDraggable(zoomActionButton)
-
--- ИСПРАВЛЕНО: Элементы ползунка создаются на экране и привязаны к кнопке ZOOM
 local extSliderFrame = Instance.new("Frame")
 extSliderFrame.Name = "ExtSliderFrame"
 extSliderFrame.Size = UDim2.new(0, 130, 0, 14)
-extSliderFrame.Position = UDim2.new(0, -140, 0, 20) -- Слева от кнопки ZOOM
+extSliderFrame.Position = UDim2.new(0, -140, 0, 20)
 extSliderFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 extSliderFrame.Visible = false
 extSliderFrame.Parent = zoomActionButton
@@ -389,6 +326,7 @@ local function turnOffNvg()
     actionButton.TextColor3 = Color3.fromRGB(0, 255, 0)
     if not thermalActive then resetLightingEffects() end
 end
+
 actionButton.MouseButton1Click:Connect(function()
     nvgActive = not nvgActive
     if nvgActive then
@@ -399,10 +337,8 @@ actionButton.MouseButton1Click:Connect(function()
         end
         actionButton.BackgroundColor3 = Color3.fromRGB(0, 80, 0); actionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
         if not origAmbient then origAmbient = lighting.Ambient; origOutdoor = lighting.OutdoorAmbient end
-        
         lighting.Ambient = Color3.fromRGB(100, 255, 100)
         lighting.OutdoorAmbient = Color3.fromRGB(100, 255, 100)
-        
         local cc = lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect", lighting)
         if not origColorCorr then origColorCorr = {TintColor = cc.TintColor, Brightness = cc.Brightness, Contrast = cc.Contrast, Saturation = cc.Saturation} end
         cc.TintColor = Color3.fromRGB(120, 255, 120); cc.Brightness = 0.2; cc.Contrast = 0; cc.Saturation = 0
@@ -421,16 +357,11 @@ thermalActionButton.MouseButton1Click:Connect(function()
         end
         thermalActionButton.BackgroundColor3 = Color3.fromRGB(180, 50, 0); thermalActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
         if not origAmbient then origAmbient = lighting.Ambient; origOutdoor = lighting.OutdoorAmbient end
-        
         lighting.Ambient = Color3.fromRGB(15, 20, 60)
         lighting.OutdoorAmbient = Color3.fromRGB(10, 15, 40)
-        
         local cc = lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect", lighting)
         if not origColorCorr then origColorCorr = {TintColor = cc.TintColor, Brightness = cc.Brightness, Contrast = cc.Contrast, Saturation = cc.Saturation} end
-        cc.TintColor = Color3.fromRGB(80, 120, 255)
-        cc.Brightness = 0.1
-        cc.Contrast = 0.6
-        cc.Saturation = -0.8
+        cc.TintColor = Color3.fromRGB(80, 120, 255); cc.Brightness = 0.1; cc.Contrast = 0.6; cc.Saturation = -0.8
     else
         thermalActive = false
         thermalActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -444,11 +375,11 @@ zoomActionButton.MouseButton1Click:Connect(function()
     if zoomActive then
         zoomActionButton.BackgroundColor3 = Color3.fromRGB(0, 120, 150)
         zoomActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        extSliderFrame.Visible = true -- ИСПРАВЛЕНО: Ползунок появляется только при клике по зуму
+        extSliderFrame.Visible = true
     else
         zoomActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
         zoomActionButton.TextColor3 = Color3.fromRGB(0, 220, 255)
-        extSliderFrame.Visible = false -- Скрываем ползунок
+        extSliderFrame.Visible = false
     end
 end)
 
@@ -473,7 +404,7 @@ end
 
 local function createToggle(text, env_val, order)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 185, 0, 32); btn.Font = Enum.Font.SourceSansBold; btn.TextSize = 13; btn.BorderSizePixel = 0; btn.LayoutOrder = order; btn.Parent = contentFrame
+    btn.Size = UDim2.new(0, 175, 0, 32); btn.Font = Enum.Font.SourceSansBold; btn.TextSize = 13; btn.BorderSizePixel = 0; btn.LayoutOrder = order; btn.Parent = contentFrame
     local btnCorner = Instance.new("UICorner"); btnCorner.CornerRadius = UDim.new(0, 6); btnCorner.Parent = btn
     
     local function updateVisuals()
@@ -516,6 +447,7 @@ createToggle("🟢 ПНВ КНОПКА", "nvgButtonEnabled", 6)
 createToggle("🔥 ТЕПЛОВИЗОР ФУНКЦИЯ", "thermalButtonEnabled", 7)
 createToggle("🔭 ЗУМ ОПТИКА КНОПКА", "zoomButtonEnabled", 8)
 createToggle("⚡ ФПС БУСТ", "fpsBoostEnabled", 9)
+
 local slidingZoom = false
 extSliderBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slidingZoom = true end end)
 inputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slidingZoom = false end end)
@@ -524,12 +456,70 @@ inputService.InputChanged:Connect(function(input)
         local mousePos = input.Position.X; local frameLeft = extSliderFrame.AbsolutePosition.X; local frameWidth = extSliderFrame.AbsoluteSize.X
         local percentage = math.clamp((mousePos - frameLeft) / frameWidth, 0, 1)
         extSliderBtn.Position = UDim2.new(percentage * (1 - 14/frameWidth), 0, 0, 0)
-        
         local calculatedZoom = math.floor(2 + (percentage * 14))
         getgenv().zoomMultiplier = calculatedZoom
         extSliderLabel.Text = "ЗУМ: " .. tostring(calculatedZoom) .. "x"
     end
 end)
+local function getAllCharacters()
+    local list = {}
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then table.insert(list, v) end
+    end
+    return list
+end
+
+local function playHitSound()
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://9114223193"; sound.Volume = 0.4; sound.PlayOnRemove = true; sound.Parent = soundService; sound:Destroy()
+end
+
+local function getBestVisibleBone(character)
+    if not character or not lPlr.Character then return nil end
+    local now = os.clock()
+    if now - lastCacheReset > 0.05 then table.clear(wallCheckCache) lastCacheReset = now end
+    if wallCheckCache[character] ~= nil then return wallCheckCache[character] end
+    local myHead = lPlr.Character:FindFirstChild("Head")
+    if not myHead then return nil end
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    rayParams.FilterDescendantsInstances = {lPlr.Character, cam, character}
+    rayParams.IgnoreWater = true
+    for _, boneName in ipairs(bonePriority) do
+        local part = character:FindFirstChild(boneName)
+        if part then
+            local origin = myHead.Position
+            local direction = part.Position - origin
+            local cast = workspace:Raycast(origin, direction, rayParams)
+            if not cast or cast.Instance.CanCollide == false or cast.Instance.Transparency > 0.7 then
+                wallCheckCache[character] = part; return part
+            end
+        end
+    end
+    wallCheckCache[character] = false; return nil
+end
+
+local function getTargetData()
+    local bestPart = nil; local shortestFovDist = math.huge; local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
+    if not myHrp then return nil, nil end
+    for _, v in pairs(getAllCharacters()) do
+        if v.Name ~= lPlr.Name and v.Humanoid.Health > 0 then
+            local visiblePart = getBestVisibleBone(v)
+            if visiblePart then
+                local screenPos, onScreen = cam:WorldToViewportPoint(visiblePart.Position)
+                if onScreen then
+                    local worldDist = (myHrp.Position - visiblePart.Position).Magnitude
+                    if worldDist <= getgenv().aimbotMaxDist then
+                        local mousePos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+                        local fovDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                        if fovDist <= getgenv().aimbotFov and fovDist < shortestFovDist then shortestFovDist = fovDist; bestPart = visiblePart end
+                    end
+                end
+            end
+        end
+    end
+    return bestPart, shortestFovDist
+end
 
 runService.RenderStepped:Connect(function()
     local targetMultiplier = zoomActive and getgenv().zoomMultiplier or 1
@@ -550,10 +540,8 @@ runService.RenderStepped:Connect(function()
                 local bulletSpeed = 950
                 local distance = (myHrp.Position - targetPart.Position).Magnitude
                 local travelTime = distance / bulletSpeed
-                
                 local movePrediction = enemyHrp.Velocity * travelTime
                 local gravityCorrection = Vector3.new(0, 0.5 * 196.2 * (travelTime ^ 2), 0)
-                
                 finalPos = targetPart.Position + movePrediction + gravityCorrection
             end
             
@@ -562,7 +550,6 @@ runService.RenderStepped:Connect(function()
         end
     end
 end)
-
 local function applyLightESP(m)
     if not m or not m.Parent or not m:IsA("Model") or not m:FindFirstChild("Humanoid") or not m:FindFirstChild("HumanoidRootPart") or m.Name == lPlr.Name then return end
     local hrp, hum = m.HumanoidRootPart, m.Humanoid; targetHealthTracker[m] = hum.Health
@@ -612,7 +599,6 @@ task.spawn(function()
         if lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart") then
             for _, descendant in pairs(workspace:GetDescendants()) do
                 local nameLower = string.lower(descendant.Name)
-                -- ИСПРАВЛЕНО: Считаем за лут/кейс, если название НАЧИНАЕТСЯ с этих ключевых слов (string.sub == 1)
                 local isLoot = string.find(nameLower, "^aurora") or string.find(nameLower, "^case") or string.find(nameLower, "^safe") or string.find(nameLower, "^сейф") or string.find(nameLower, "^box")
                 local isMine = string.find(nameLower, "^mine") or string.find(nameLower, "^landmine") or string.find(nameLower, "^tripwire") or string.find(nameLower, "^мина") or string.find(nameLower, "^растяжка")
                 local isDrop = string.find(nameLower, "^drop") or string.find(nameLower, "^airdrop") or string.find(nameLower, "^supply")
