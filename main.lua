@@ -37,7 +37,8 @@ screenGui.Parent = game:GetService("CoreGui") or lPlr:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 380, 0, 420)
+-- ИСПРАВЛЕНО: Ровно 200 пикселей по ширине, как ты просил
+mainFrame.Size = UDim2.new(0, 200, 0, 420)
 mainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.BorderSizePixel = 0
@@ -175,7 +176,7 @@ inputService.InputChanged:Connect(function(input)
 end)
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
-minimizeBtn.Position = UDim2.new(0.9, 0, 0.08, 0)
+minimizeBtn.Position = UDim2.new(0.85, 0, 0.08, 0)
 minimizeBtn.BackgroundTransparency = 1
 minimizeBtn.Text = "—"
 minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -191,8 +192,9 @@ contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
 
 local layout = Instance.new("UIGridLayout")
-layout.Padding = UDim2.new(0, 10, 0, 10)
-layout.CellSize = UDim2.new(0, 175, 0, 32)
+-- ИСПРАВЛЕНО: Размеры кнопок адаптированы под ширину 200px (кнопки по 185px встают в 1 вертикальный ряд)
+layout.Padding = UDim2.new(0, 5, 0, 6)
+layout.CellSize = UDim2.new(0, 185, 0, 32)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Parent = contentFrame
@@ -201,9 +203,9 @@ local isMinimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
-        contentFrame.Visible = false; subFrame.Visible = false; mainFrame.Size = UDim2.new(0, 380, 0, 35); minimizeBtn.Text = "+"
+        contentFrame.Visible = false; subFrame.Visible = false; mainFrame.Size = UDim2.new(0, 200, 0, 35); minimizeBtn.Text = "+"
     else
-        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 380, 0, 420); minimizeBtn.Text = "—"
+        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 200, 0, 420); minimizeBtn.Text = "—"
     end
 end)
 
@@ -404,7 +406,7 @@ end
 
 local function createToggle(text, env_val, order)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 175, 0, 32); btn.Font = Enum.Font.SourceSansBold; btn.TextSize = 13; btn.BorderSizePixel = 0; btn.LayoutOrder = order; btn.Parent = contentFrame
+    btn.Size = UDim2.new(0, 185, 0, 32); btn.Font = Enum.Font.SourceSansBold; btn.TextSize = 13; btn.BorderSizePixel = 0; btn.LayoutOrder = order; btn.Parent = contentFrame
     local btnCorner = Instance.new("UICorner"); btnCorner.CornerRadius = UDim.new(0, 6); btnCorner.Parent = btn
     
     local function updateVisuals()
@@ -467,11 +469,6 @@ local function getAllCharacters()
         if v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then table.insert(list, v) end
     end
     return list
-end
-
-local function playHitSound()
-    local sound = Instance.new("Sound")
-    sound.SoundId = "rbxassetid://9114223193"; sound.Volume = 0.4; sound.PlayOnRemove = true; sound.Parent = soundService; sound:Destroy()
 end
 
 local function getBestVisibleBone(character)
