@@ -318,7 +318,6 @@ local origShadows = lighting.GlobalShadows
 local function toggleFpsBoost(enable)
     lighting.GlobalShadows = not enable
     if enable then
-        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
         for _, effect in pairs(lighting:GetChildren()) do
             if effect:IsA("BlurEffect") or effect:IsA("SunRaysEffect") or effect:IsA("Sky") or effect:IsA("Clouds") or effect:IsA("Atmosphere") then
                 table.insert(backupEffects, {effect = effect, parent = effect.Parent})
@@ -327,7 +326,6 @@ local function toggleFpsBoost(enable)
         end
     else
         lighting.GlobalShadows = origShadows
-        settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
         for _, data in pairs(backupEffects) do if data.effect then data.effect.Parent = data.parent end end
         table.clear(backupEffects)
     end
@@ -478,7 +476,7 @@ task.spawn(function()
     while true do
         if getgenv().itemEspEnabled then
             local mapFolder = workspace:FindFirstChild("Map") or workspace
-            for _, descendant in pairs(mapFolder:GetChildren()) do
+            for _, descendant in pairs(mapFolder:GetDescendants()) do
                 if descendant.Name == "AuroraBox" or descendant.Name == "BigBox" or string.find(string.lower(descendant.Name), "safe") or string.find(string.lower(descendant.Name), "сейф") then
                     local p = descendant:IsA("BasePart") and descendant or descendant:FindFirstChild("Part") or descendant:FindFirstChildWhichIsA("BasePart")
                     if p and not p:FindFirstChild("LootTextGui") and getgenv().itemEspEnabled then
