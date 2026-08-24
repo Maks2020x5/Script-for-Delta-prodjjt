@@ -107,6 +107,8 @@ createConfigButton("Предел: ЛЕГИТ (FOV 60 / 150m)", 60, 150, 1)
 createConfigButton("Предел: СРЕДНИЙ (FOV 120 / 400m)", 120, 400, 2)
 createConfigButton("Предел: МАКСИМУМ (FOV 250 / 1000m)", 250, 1000, 3)
 
+local entityCache = {}
+
 local function getAllCharacters()
     local list = {}
     for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
@@ -114,10 +116,21 @@ local function getAllCharacters()
             table.insert(list, p.Character)
         end
     end
-    local mobs = workspace:FindFirstChild("Mobs") or workspace:FindFirstChild("NPCs")
-    if mobs then
-        for _, m in ipairs(mobs:GetChildren()) do
-            if m:FindFirstChild("HumanoidRootPart") then table.insert(list, m) end
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:IsA("Model") and obj ~= lPlr.Character and not game:GetService("Players"):GetPlayerFromCharacter(obj) then
+            if obj:FindFirstChild("HumanoidRootPart") and obj:FindFirstChild("Humanoid") then
+                table.insert(list, obj)
+            end
+        end
+    end
+    local folders = {workspace:FindFirstChild("Mobs"), workspace:FindFirstChild("NPCs"), workspace:FindFirstChild("Zombies")}
+    for _, folder in pairs(folders) do
+        if folder then
+            for _, m in ipairs(folder:GetChildren()) do
+                if m:IsA("Model") and m:FindFirstChild("HumanoidRootPart") and not table.find(list, m) then 
+                    table.insert(list, m) 
+                end
+            end
         end
     end
     return list
@@ -169,7 +182,7 @@ local titleCorner = Instance.new("UICorner")
 titleCorner.CornerRadius = UDim.new(0, 8)
 titleCorner.Parent = titleBar
 
-local bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand"}
+local bonePriority = {"Head", "UpperTorso", "HumanoidRootPart"}
 local wallCheckCache = {}
 local lastCacheReset = os.clock()
 local targetHealthTracker = {}
@@ -184,7 +197,6 @@ titleText.TextSize = 13
 titleText.Font = Enum.Font.SourceSansBold
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = titleBar
-
 local dragging, dragInput, dragStart, startPos
 titleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -203,8 +215,9 @@ end)
 local function getBestVisibleBone(character)
     if not character or not lPlr.Character or character == lPlr.Character then return nil end
     local now = os.clock()
-    if now - lastCacheReset > 0.05 then table.clear(wallCheckCache) lastCacheReset = now end
+    if now - lastCacheReset > 0.1 then table.clear(wallCheckCache) lastCacheReset = now end
     if wallCheckCache[character] ~= nil then return wallCheckCache[character] end
+    
     local myHead = lPlr.Character:FindFirstChild("Head")
     if not myHead then return nil end
     
@@ -219,18 +232,38 @@ local function getBestVisibleBone(character)
             local origin = myHead.Position
             local direction = part.Position - origin
             local cast = workspace:Raycast(origin, direction, rayParams)
-            if not cast or cast.Instance.CanCollide == false or cast.Instance.Transparency > 0.7 then
-                wallCheckCache[character] = part; return part
+            
+            if not cast then
+                wallCheckCache[character] = part
+                return part
+            else
+                local inst = cast.Instance
+                local isTransparent = inst.Transparency > 0.4
+                local isPassable = inst.CanCollide == false
+                local isFoliage = inst.Name == "Leaf" or inst.Name == "Leaves" or inst.Parent.Name == "Vegetation"
+                local isThinProp = inst.Size.X < 0.6 or inst.Size.Y < 0.6 or inst.Size.Z < 0.6
+
+                if isTransparent or isPassable or isFoliage or isThinProp then
+                    local secondParams = RaycastParams.new()
+                    secondParams.FilterType = Enum.RaycastFilterType.Exclude
+                    secondParams.FilterDescendantsInstances = {lPlr.Character, cam, character, inst}
+                    local secondCast = workspace:Raycast(cast.Position, part.Position - cast.Position, secondParams)
+                    
+                    if not secondCast then
+                        wallCheckCache[character] = part
+                        return part
+                    end
+                end
             end
         end
     end
-    wallCheckCache[character] = false; return nil
+    wallCheckCache[character] = false
+    return nil
 end
 
 local function getTargetData()
     local bestPart = nil; local shortestFovDist = math.huge; local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
     if not myHrp then return nil, nil end
-    
     local mousePos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
     
     for _, v in pairs(getAllCharacters()) do
@@ -337,6 +370,7 @@ thrmStroke.Color = Color3.fromRGB(255, 100, 0)
 thrmStroke.Thickness = 2
 thrmStroke.Parent = thermalActionButton
 makeButtonDraggable(thermalActionButton)
+
 local zoomActionButton = Instance.new("TextButton")
 zoomActionButton.Name = "ZoomScreenButton"
 zoomActionButton.Size = UDim2.new(0, 55, 0, 55)
@@ -396,7 +430,6 @@ local function resetLightingEffects()
         cc.Saturation = origColorCorr.Saturation
     end
 end
-
 local function turnOffNvg()
     nvgActive = false
     actionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -425,6 +458,7 @@ actionButton.MouseButton1Click:Connect(function()
         turnOffNvg() 
     end
 end)
+
 thermalActionButton.MouseButton1Click:Connect(function()
     thermalActive = not thermalActive
     if thermalActive then
@@ -466,21 +500,24 @@ zoomActionButton.MouseButton1Click:Connect(function()
     end
 end)
 
-local backupEffects = {}; local origShadows = lighting.GlobalShadows
+local backupEffects = {}
 local function toggleFpsBoost(enable)
-    lighting.GlobalShadows = not enable
     if enable then
         for _, effect in pairs(lighting:GetChildren()) do
             if effect:IsA("BlurEffect") or effect:IsA("SunRaysEffect") or effect:IsA("Sky") or effect:IsA("Clouds") or effect:IsA("Atmosphere") then
-                table.insert(backupEffects, {effect = effect, parent = effect.Parent}); effect.Parent = nil
+                table.insert(backupEffects, {effect = effect, parent = effect.Parent})
+                effect.Parent = nil
             end
         end
     else
-        lighting.GlobalShadows = origShadows
-        for _, data in pairs(backupEffects) do if data.effect then data.effect.Parent = data.parent end end; table.clear(backupEffects)
+        for _, data in pairs(backupEffects) do 
+            if data.effect then 
+                data.effect.Parent = data.parent 
+            end 
+        end
+        table.clear(backupEffects)
     end
 end
-
 local function destroyAllLootGuis()
     for _, v in pairs(workspace:GetDescendants()) do if v:IsA("BillboardGui") and (v.Name == "LootTextGui" or v.Name == "MineTextGui") then v:Destroy() end end
 end
@@ -582,8 +619,18 @@ runService.RenderStepped:Connect(function()
 end)
 
 local function applyLightESP(m)
-    if not m or not m.Parent or not m:IsA("Model") or not m:FindFirstChild("Humanoid") or not m:FindFirstChild("HumanoidRootPart") or m.Name == lPlr.Name then return end
-    local hrp, hum = m.HumanoidRootPart, m.Humanoid; targetHealthTracker[m] = hum.Health
+    if not m or not m.Parent or not m:IsA("Model") or m.Name == lPlr.Name then return end
+    
+    local hum = m:FindFirstChildOfClass("Humanoid") or m:WaitForChild("Humanoid", 2)
+    local hrp = m:FindFirstChild("HumanoidRootPart") or m:WaitForChild("HumanoidRootPart", 2)
+    if not hum or not hrp then return end
+    
+    targetHealthTracker[m] = hum.Health
+    
+    if entityCache[m] == nil then
+        local isRealPlayer = game.Players:FindFirstChild(m.Name) ~= nil
+        entityCache[m] = isRealPlayer and "PLAYER" or "BOT"
+    end
     
     if m:FindFirstChild("TextEspGui") then m.TextEspGui:Destroy() end
     
@@ -595,21 +642,37 @@ local function applyLightESP(m)
         end
         targetHealthTracker[m] = nh
     end)
+    
     local hl = m:FindFirstChild("MobileESP") or Instance.new("Highlight")
     if not hl.Parent then hl.Name = "MobileESP"; hl.Parent = m; hl.FillTransparency = 1; hl.OutlineTransparency = 0 end
+    
     local bGui = Instance.new("BillboardGui")
     bGui.Name = "TextEspGui"; bGui.AlwaysOnTop = true; bGui.MaxDistance = 4000; bGui.Size = UDim2.new(0, 140, 0, 25); bGui.StudsOffset = Vector3.new(0, 3, 0); bGui.Parent = hrp
     local txt = Instance.new("TextLabel", bGui); txt.Size = UDim2.new(1, 0, 1, 0); txt.BackgroundTransparency = 1; txt.TextSize = 13; txt.Font = Enum.Font.SourceSansBold
     
     task.spawn(function()
         while m and m.Parent and hrp and txt and bGui and hl do
-            local isDead = hum.Health <= 0; local state = isDead and getgenv().corpseEspEnabled or getgenv().espEnabled
+            local isDead = hum.Health <= 0
+            local entityType = entityCache[m] or "BOT"
+            
+            local state = false
+            if isDead then state = getgenv().corpseEspEnabled else state = getgenv().espEnabled end
+            
             hl.Enabled, bGui.Enabled = state, state
             if state and lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart") then
                 local d = math.floor((lPlr.Character.HumanoidRootPart.Position - hrp.Position).Magnitude)
                 if d <= 4000 then
-                    local isReal = game.Players:FindFirstChild(m.Name) ~= nil; local base = isDead and "[ТРУП]" or isReal and "[ИГРОК]" or "[БОТ / ДИКИЙ]"
-                    local c = isDead and Color3.fromRGB(150, 150, 150) or getBestVisibleBone(m) and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+                    local base = ""
+                    if isDead then
+                        base = (entityType == "PLAYER") and "[💀 ТРУП ИГРОКА]" or "[💀 ТРУП БОТА]"
+                    else
+                        base = (entityType == "PLAYER") and "[ИГРОК]" or "[БОТ / ДИКИЙ]"
+                    end
+                    
+                    local isVisible = getBestVisibleBone(m) ~= nil
+                    local c = Color3.fromRGB(255, 0, 0)
+                    
+                    if isDead then c = Color3.fromRGB(160, 160, 160) elseif isVisible then c = Color3.fromRGB(0, 255, 0) end
                     
                     if thermalActive and not isDead then 
                         hl.FillColor = Color3.fromRGB(255, 80, 0)
@@ -618,10 +681,13 @@ local function applyLightESP(m)
                     else 
                         hl.FillTransparency = 1 
                     end
-                    hl.OutlineColor, txt.TextColor3 = c, c; txt.Text = base .. " " .. tostring(d) .. "m" .. (isDead and "" or " [" .. math.floor(hum.Health) .. " HP]"); txt.Visible = true
+                    
+                    hl.OutlineColor, txt.TextColor3 = c, c
+                    txt.Text = base .. " " .. tostring(d) .. "m" .. (isDead and "" or " [" .. math.floor(hum.Health) .. " HP]")
+                    txt.Visible = true
                 else txt.Visible = false end
             else txt.Visible = false end
-            task.wait(0.4)
+            task.wait(0.25)
         end
     end)
 end
