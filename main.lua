@@ -27,7 +27,7 @@ fovCircle.Visible = getgenv().showFovCircle
 fovCircle.Thickness = 1.5
 fovCircle.Color = Color3.fromRGB(0, 255, 150)
 fovCircle.Transparency = 0.7
-fovCircle.NumSides = 48
+fovCircle.NumSides = 32
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "DeltaProjectMenu_" .. math.random(100, 999)
@@ -103,15 +103,22 @@ local function createConfigButton(text, fovVal, distVal, order)
         task.delay(0.2, function() btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45) end)
     end)
 end
-
 createConfigButton("Предел: ЛЕГИТ (FOV 60 / 150m)", 60, 150, 1)
 createConfigButton("Предел: СРЕДНИЙ (FOV 120 / 400m)", 120, 400, 2)
 createConfigButton("Предел: МАКСИМУМ (FOV 250 / 1000m)", 250, 1000, 3)
 
 local function getAllCharacters()
     local list = {}
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then table.insert(list, v) end
+    for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+        if p ~= lPlr and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            table.insert(list, p.Character)
+        end
+    end
+    local mobs = workspace:FindFirstChild("Mobs") or workspace:FindFirstChild("NPCs")
+    if mobs then
+        for _, m in ipairs(mobs:GetChildren()) do
+            if m:FindFirstChild("HumanoidRootPart") then table.insert(list, m) end
+        end
     end
     return list
 end
@@ -171,7 +178,7 @@ local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(0.7, 0, 1, 0)
 titleText.Position = UDim2.new(0.05, 0, 0, 0)
 titleText.BackgroundTransparency = 1
-titleText.Text = "DELTA CHEATS"
+titleText.Text = "DELTA CHEATS V2"
 titleText.TextColor3 = Color3.fromRGB(0, 255, 150)
 titleText.TextSize = 13
 titleText.Font = Enum.Font.SourceSansBold
@@ -194,16 +201,18 @@ inputService.InputChanged:Connect(function(input)
 end)
 
 local function getBestVisibleBone(character)
-    if not character or not lPlr.Character then return nil end
+    if not character or not lPlr.Character or character == lPlr.Character then return nil end
     local now = os.clock()
     if now - lastCacheReset > 0.05 then table.clear(wallCheckCache) lastCacheReset = now end
     if wallCheckCache[character] ~= nil then return wallCheckCache[character] end
     local myHead = lPlr.Character:FindFirstChild("Head")
     if not myHead then return nil end
+    
     local rayParams = RaycastParams.new()
     rayParams.FilterType = Enum.RaycastFilterType.Exclude
     rayParams.FilterDescendantsInstances = {lPlr.Character, cam, character}
     rayParams.IgnoreWater = true
+    
     for _, boneName in ipairs(bonePriority) do
         local part = character:FindFirstChild(boneName)
         if part then
@@ -221,17 +230,22 @@ end
 local function getTargetData()
     local bestPart = nil; local shortestFovDist = math.huge; local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
     if not myHrp then return nil, nil end
+    
+    local mousePos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+    
     for _, v in pairs(getAllCharacters()) do
-        if v.Name ~= lPlr.Name and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+        if v and v.Name ~= lPlr.Name and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
             local visiblePart = getBestVisibleBone(v)
             if visiblePart then
                 local screenPos, onScreen = cam:WorldToViewportPoint(visiblePart.Position)
                 if onScreen then
                     local worldDist = (myHrp.Position - visiblePart.Position).Magnitude
                     if worldDist <= getgenv().aimbotMaxDist then
-                        local mousePos = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
                         local fovDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                        if fovDist <= getgenv().aimbotFov and fovDist < shortestFovDist then shortestFovDist = fovDist; bestPart = visiblePart end
+                        if fovDist <= getgenv().aimbotFov and fovDist < shortestFovDist then 
+                            shortestFovDist = fovDist; 
+                            bestPart = visiblePart 
+                        end
                     end
                 end
             end
@@ -249,7 +263,6 @@ minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
 minimizeBtn.TextSize = 16
 minimizeBtn.Font = Enum.Font.SourceSansBold
 minimizeBtn.Parent = titleBar
-
 local contentFrame = Instance.new("Frame")
 contentFrame.Name = "Content"
 contentFrame.Size = UDim2.new(1, 0, 0, 320)
@@ -271,6 +284,7 @@ minimizeBtn.MouseButton1Click:Connect(function()
         contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 200, 0, 360); minimizeBtn.Text = "—"
     end
 end)
+
 local function makeButtonDraggable(button)
     local bDragging, bDragInput, bDragStart, bStartPos
     button.InputBegan:Connect(function(input)
@@ -323,7 +337,6 @@ thrmStroke.Color = Color3.fromRGB(255, 100, 0)
 thrmStroke.Thickness = 2
 thrmStroke.Parent = thermalActionButton
 makeButtonDraggable(thermalActionButton)
-
 local zoomActionButton = Instance.new("TextButton")
 zoomActionButton.Name = "ZoomScreenButton"
 zoomActionButton.Size = UDim2.new(0, 55, 0, 55)
@@ -412,7 +425,6 @@ actionButton.MouseButton1Click:Connect(function()
         turnOffNvg() 
     end
 end)
-
 thermalActionButton.MouseButton1Click:Connect(function()
     thermalActive = not thermalActive
     if thermalActive then
@@ -482,7 +494,6 @@ local function createToggle(text, env_val, order)
     btn.LayoutOrder = order
     btn.Parent = contentFrame
     local btnCorner = Instance.new("UICorner"); btnCorner.CornerRadius = UDim.new(0, 5); btnCorner.Parent = btn
-    
     local function updateVisuals()
         if getgenv()[env_val] then
             btn.BackgroundColor3 = Color3.fromRGB(34, 139, 34); btn.Text = text .. ": ВКЛ"; btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -538,7 +549,6 @@ inputService.InputChanged:Connect(function(input)
         extSliderLabel.Text = "ЗУМ: " .. tostring(calculatedZoom) .. "x"
     end
 end)
-
 runService.RenderStepped:Connect(function()
     local targetMultiplier = zoomActive and getgenv().zoomMultiplier or 1
     cam.FieldOfView = cam.FieldOfView + ((70 / targetMultiplier) - cam.FieldOfView) * 0.2
@@ -549,24 +559,24 @@ runService.RenderStepped:Connect(function()
     if getgenv().aimbotEnabled and (os.clock() - lastAimTime > 0.01) then
         lastAimTime = os.clock()
         local targetPart, fovDist = getTargetData()
-        if targetPart and fovDist then
+        if targetPart and fovDist and targetPart.Parent ~= lPlr.Character then 
             local enemyHrp = targetPart.Parent:FindFirstChild("HumanoidRootPart")
             local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
             local finalPos = targetPart.Position
             
             if enemyHrp and myHrp then 
-                local bulletSpeed = 950
+                local bulletSpeed = 1200 
                 local distance = (myHrp.Position - targetPart.Position).Magnitude
                 local travelTime = distance / bulletSpeed
                 
-                local movePrediction = enemyHrp.Velocity * travelTime
-                local gravityCorrection = Vector3.new(0, 0.5 * 196.2 * (travelTime ^ 2), 0)
+                local movePrediction = enemyHrp.Velocity * (travelTime * 0.7)
+                local gravityCorrection = Vector3.new(0, 0.5 * 40 * (travelTime ^ 2), 0) 
                 
                 finalPos = targetPart.Position + movePrediction + gravityCorrection
             end
             
             local fovRatio = 1 - (fovDist / getgenv().aimbotFov)
-            cam.CFrame = cam.CFrame:Lerp(CFrame.new(cam.CFrame.Position, finalPos), 0.12 + (0.33 * fovRatio))
+            cam.CFrame = cam.CFrame:Lerp(CFrame.new(cam.CFrame.Position, finalPos), 0.08 + (0.22 * fovRatio))
         end
     end
 end)
@@ -611,32 +621,35 @@ local function applyLightESP(m)
                     hl.OutlineColor, txt.TextColor3 = c, c; txt.Text = base .. " " .. tostring(d) .. "m" .. (isDead and "" or " [" .. math.floor(hum.Health) .. " HP]"); txt.Visible = true
                 else txt.Visible = false end
             else txt.Visible = false end
-            task.wait(0.3)
+            task.wait(0.4)
         end
     end)
 end
 
 workspace.DescendantAdded:Connect(applyLightESP)
+
 task.spawn(function()
     while true do
         if lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart") then
-            for _, descendant in pairs(workspace:GetDescendants()) do
+            local itemsFolder = workspace:FindFirstChild("Loot") or workspace:FindFirstChild("Items") or workspace
+            for _, descendant in pairs(itemsFolder:GetChildren()) do
                 local nameLower = string.lower(descendant.Name)
                 local isLoot = string.find(nameLower, "^aurora") or string.find(nameLower, "^case") or string.find(nameLower, "^safe") or string.find(nameLower, "^сейф") or string.find(nameLower, "^box")
                 local isMine = string.find(nameLower, "^mine") or string.find(nameLower, "^landmine") or string.find(nameLower, "^tripwire") or string.find(nameLower, "^мина") or string.find(nameLower, "^растяжка")
                 local isDrop = string.find(nameLower, "^drop") or string.find(nameLower, "^airdrop") or string.find(nameLower, "^supply")
+                
                 if (isLoot and getgenv().itemEspEnabled) or (isMine and getgenv().mineEspEnabled) or (isDrop and getgenv().itemEspEnabled) then
                     local p = descendant:IsA("BasePart") and descendant or descendant:FindFirstChildWhichIsA("BasePart")
                     if p then
                         local dist = math.floor((lPlr.Character.HumanoidRootPart.Position - p.Position).Magnitude)
-                        if dist <= 4000 then
+                        if dist <= 500 then 
                             local guiName = isMine and "MineTextGui" or "LootTextGui"; local b = p:FindFirstChild(guiName)
                             if not b then
-                                b = Instance.new("BillboardGui", p); b.Name = guiName; b.AlwaysOnTop = true; b.MaxDistance = 4000; b.Size = UDim2.new(0, 140, 0, 25); b.StudsOffset = Vector3.new(0, 2, 0)
+                                b = Instance.new("BillboardGui", p); b.Name = guiName; b.AlwaysOnTop = true; b.MaxDistance = 500; b.Size = UDim2.new(0, 140, 0, 25); b.StudsOffset = Vector3.new(0, 2, 0)
                                 local t = Instance.new("TextLabel", b); t.Size = UDim2.new(1, 0, 1, 0); t.BackgroundTransparency = 0.3; t.BackgroundColor3 = Color3.fromRGB(20, 20, 20); t.TextSize = 11; t.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", t).CornerRadius = UDim.new(0, 6)
                             end
                             local cleanName = "📦 ОБЪЕКТ"
-                            if isMine then cleanName = "💥 МИНА / РАСТЯЖКА"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+                            if isMine then cleanName = "💥 МИНА"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
                             elseif isDrop then cleanName = "✈️ АИРДРОП"; b.TextLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
                             elseif string.find(nameLower, "^aurora") then cleanName = "✨ АВРОРА КЕЙС"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
                             elseif string.find(nameLower, "^safe") or string.find(nameLower, "^сейф") then cleanName = "🗄️ СЕЙФ"; b.TextLabel.TextColor3 = Color3.fromRGB(255, 165, 0)
@@ -650,7 +663,8 @@ task.spawn(function()
                 end
             end
         end
-        task.wait(1.0)
+        task.wait(2.0) 
     end
 end)
+
 for _, v in pairs(workspace:GetDescendants()) do pcall(function() applyLightESP(v) end) end
