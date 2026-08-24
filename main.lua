@@ -101,7 +101,7 @@ if now - lastScanTime > 0.3 then
 lastScanTime = now
 table.clear(cachedTargets)
 for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
-if p ~= lPlr and p.Character then
+if p ~= lPlr and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
 table.insert(cachedTargets, p.Character)
 end
 end
@@ -110,11 +110,11 @@ if v:IsA("Model") and v ~= lPlr.Character and v:FindFirstChild("Humanoid") and v
 table.insert(cachedTargets, v)
 end
 end
-local folderBots = workspace:FindFirstChild("Mobs") or workspace:FindFirstChild("NPCs") or workspace:FindFirstChild("Enemies")
+local folderBots = workspace:FindFirstChild("Mobs") or workspace:FindFirstChild("NPCs") or workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Bots")
 if folderBots then
-for _, v in ipairs(folderBots:GetChildren()) do
-if v:IsA("Model") and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then
-table.insert(cachedTargets, v)
+for _, m in ipairs(folderBots:GetChildren()) do
+if m:FindFirstChild("HumanoidRootPart") then
+table.insert(cachedTargets, m)
 end
 end
 end
