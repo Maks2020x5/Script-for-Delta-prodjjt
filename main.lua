@@ -724,7 +724,7 @@ local function applyLightESP(m)
     
     hum.HealthChanged:Connect(function(nh)
         local oh = targetHealthTracker[m] or nh
-        if nh < oh and getgenv().aimbotEnabled and m:FindFirstChild("Head") then
+        if nh < oh and getgenv().aimbotEnabled nudge and m:FindFirstChild("Head") then
             local screenPos, onScreen = cam:WorldToViewportPoint(m.Head.Position)
             if onScreen and (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)).Magnitude <= getgenv().aimbotFov then playHitSound() end
         end
