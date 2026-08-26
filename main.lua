@@ -13,6 +13,9 @@ getgenv().zoomMultiplier = 2
 getgenv().zoomButtonEnabled = false
 getgenv().aimbotTargetMode = "Head" 
 
+getgenv().locationsEspEnabled = false
+getgenv().hitboxExpanderEnabled = false
+
 local lPlr = game:GetService("Players").LocalPlayer
 local cam = workspace.CurrentCamera
 local runService = game:GetService("RunService")
@@ -39,7 +42,7 @@ screenGui.Parent = game:GetService("CoreGui") or lPlr:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 200, 0, 360) 
+mainFrame.Size = UDim2.new(0, 200, 0, 420)
 mainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.BorderSizePixel = 0
@@ -106,7 +109,8 @@ local function createConfigButton(text, fovVal, distVal, order)
 end
 createConfigButton("Предел: ЛЕГИТ (FOV 60 / 150m)", 60, 150, 1)
 createConfigButton("Предел: СРЕДНИЙ (FOV 120 / 400m)", 120, 400, 2)
-createConfigButton("Предел: МАКСИМУМ (FOV 250 / 1000m)", 250, 1000, 3)
+createConfigButton("Предел: МАКСИМУМ (FOV 250 / 1000m)", 250, 10
+00, 3)
 
 local targetToggleBtn = Instance.new("TextButton")
 targetToggleBtn.Size = UDim2.new(0, 170, 0, 30)
@@ -322,7 +326,7 @@ minimizeBtn.Parent = titleBar
 
 local contentFrame = Instance.new("Frame")
 contentFrame.Name = "Content"
-contentFrame.Size = UDim2.new(1, 0, 0, 320)
+contentFrame.Size = UDim2.new(1, 0, 0, 380)
 contentFrame.Position = UDim2.new(0, 0, 0, 35)
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
@@ -338,7 +342,7 @@ minimizeBtn.MouseButton1Click:Connect(function()
     if isMinimized then
         contentFrame.Visible = false; subFrame.Visible = false; mainFrame.Size = UDim2.new(0, 200, 0, 35); minimizeBtn.Text = "+"
     else
-        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 200, 0, 360); minimizeBtn.Text = "—"
+        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 200, 0, 420); minimizeBtn.Text = "—"
     end
 end)
 
@@ -534,6 +538,46 @@ local function destroyAllLootGuis()
     for _, v in pairs(workspace:GetDescendants()) do if v:IsA("BillboardGui") and (v.Name == "LootTextGui" or v.Name == "MineTextGui") then v:Destroy() end end
 end
 
+local originalHitboxes = {}
+
+local function updateHitboxes()
+    if not getgenv().hitboxExpanderEnabled then
+        for part, data in pairs(originalHitboxes) do
+            if part and part.Parent then
+                part.Size = data.Size
+                part.Transparency = data.Transparency
+                part.Color = data.Color
+                part.CanCollide = data.CanCollide
+            end
+        end
+        table.clear(originalHitboxes)
+        return
+    end
+
+    for _, char in ipairs(getAllCharacters()) do
+        if char and char:FindFirstChildOfClass("Humanoid") and char:FindFirstChildOfClass("Humanoid").Health > 0 then
+            local targetParts = {"Head", "Torso", "UpperTorso", "LowerTorso"}
+            for _, name in ipairs(targetParts) do
+                local part = char:FindFirstChild(name)
+                if part and part:IsA("BasePart") then
+                    if not originalHitboxes[part] then
+                        originalHitboxes[part] = {
+                            Size = part.Size,
+                            Transparency = part.Transparency,
+                            Color = part.Color,
+                            CanCollide = part.CanCollide
+                        }
+                    end
+                    part.Size = originalHitboxes[part].Size * 3
+                    part.Transparency = 0.6
+                    part.Color = Color3.fromRGB(0, 170, 255)
+                    part.CanCollide = false
+                end
+            end
+        end
+    end
+end
+
 local function createToggle(text, env_val, order)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 180, 0, 26) 
@@ -551,6 +595,7 @@ local function createToggle(text, env_val, order)
             if env_val == "thermalButtonEnabled" then thermalActionButton.Visible = true end
             if env_val == "zoomButtonEnabled" then zoomActionButton.Visible = true end
             if env_val == "fpsBoostEnabled" then toggleFpsBoost(true) end
+            if env_val == "hitboxExpanderEnabled" then updateHitboxes() end
         else
             btn.BackgroundColor3 = Color3.fromRGB(139, 0, 0); btn.Text = text .. ": ВЫКЛ"; btn.TextColor3 = Color3.fromRGB(200, 200, 200)
             if env_val == "aimbotEnabled" then subFrame.Visible = false end
@@ -566,6 +611,7 @@ local function createToggle(text, env_val, order)
                 zoomActionButton.Visible = false; zoomActive = false; extSliderFrame.Visible = false; zoomActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
             end
             if env_val == "itemEspEnabled" or env_val == "mineEspEnabled" then destroyAllLootGuis() end
+            if env_val == "hitboxExpanderEnabled" then updateHitboxes() end
         end
     end
     updateVisuals(); btn.MouseButton1Click:Connect(function() getgenv()[env_val] = not getgenv()[env_val]; updateVisuals() end)
@@ -576,10 +622,12 @@ createToggle("👤 ESP ИГРОКИ", "espEnabled", 2)
 createToggle("💀 ESP ТРУПЫ", "corpseEspEnabled", 3)
 createToggle("📦 ESP ЛУТ / КЕЙСЫ", "itemEspEnabled", 4)
 createToggle("💥 ESP МИНЫ", "mineEspEnabled", 5)
-createToggle("🟢 ПНВ КНОПКА", "nvgButtonEnabled", 6)
-createToggle("🔥 ТЕПЛОВИЗОР ФУНКЦИЯ", "thermalButtonEnabled", 7)
-createToggle("🔭 ЗУМ ОПТИКА КНОПКА", "zoomButtonEnabled", 8)
-createToggle("⚡ ФПС БУСТ", "fpsBoostEnabled", 9)
+createToggle("📍 ESP ЛОКАЦИИ", "locationsEspEnabled", 6)
+createToggle("🎯 РАСШИРИТЬ ХИТБОКСЫ", "hitboxExpanderEnabled", 7)
+createToggle("🟢 ПНВ КНОПКА", "nvgButtonEnabled", 8)
+createToggle("🔥 ТЕПЛОВИЗОР ФУНКЦИЯ", "thermalButtonEnabled", 9)
+createToggle("🔭 ЗУМ ОПТИКА КНОПКА", "zoomButtonEnabled", 10)
+createToggle("⚡ ФПС БУСТ", "fpsBoostEnabled", 11)
 
 local slidingZoom = false
 extSliderBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slidingZoom = true end end)
@@ -594,6 +642,53 @@ inputService.InputChanged:Connect(function(input)
         extSliderLabel.Text = "ЗУМ: " .. tostring(calculatedZoom) .. "x"
     end
 end)
+
+local mapLocations = {
+    {Name = "🚩 АЭРОДРОМ", Pos = Vector3.new(1200, 50, -800)},
+    {Name = "🚧 ЭСТОНСКАЯ ГРАНИЦА", Pos = Vector3.new(-1500, 45, 1200)},
+    {Name = "🏢 W13 ОБЩАГИ", Pos = Vector3.new(200, 60, 450)},
+    {Name = "🏡 ДЕРЕВНЯ", Pos = Vector3.new(-400, 40, -600)},
+    {Name = "⛽ ЗАПРАВКА", Pos = Vector3.new(800, 42, 100)}
+}
+
+local locFolder = workspace:FindFirstChild("DeltaLocationsESP") or Instance.new("Folder", workspace)
+locFolder.Name = "DeltaLocationsESP"
+
+local function setupLocationsESP()
+    locFolder:ClearAllChildren()
+    for _, loc in ipairs(mapLocations) do
+        local nPart = Instance.new("Part")
+        nPart.Name = "Loc_" .. loc.Name
+        nPart.Position = loc.Pos
+        nPart.Anchored = true
+        nPart.CanCollide = false
+        nPart.Transparency = 1
+        nPart.Size = Vector3.new(1, 1, 1)
+        nPart.Parent = locFolder
+        
+        local b = Instance.new("BillboardGui", nPart)
+        b.Name = "LocGui"
+        b.AlwaysOnTop = true
+        b.MaxDistance = 10000
+        b.Size = UDim2.new(0, 160, 0, 28)
+        
+        local t = Instance.new("TextLabel", b)
+        t.Size = UDim2.new(1, 0, 1, 0)
+        t.BackgroundTransparency = 0.2
+        t.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
+        t.TextSize = 12
+        t.Font = Enum.Font.SourceSansBold
+        t.TextColor3 = Color3.fromRGB(255, 255, 255)
+        
+        local stroke = Instance.new("UIStroke", t)
+        stroke.Color = Color3.fromRGB(255, 255, 0)
+        stroke.Thickness = 1.5
+        
+        local corner = Instance.new("UICorner", t)
+        corner.CornerRadius = UDim.new(0, 6)
+    end
+end
+setupLocationsESP()
 
 runService.RenderStepped:Connect(function()
     local targetMultiplier = zoomActive and getgenv().zoomMultiplier or 1
@@ -663,6 +758,22 @@ workspace.DescendantAdded:Connect(applyLightESP)
 task.spawn(function()
     while true do
         if lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart") then
+            local myPos = lPlr.Character.HumanoidRootPart.Position
+            
+            pcall(updateHitboxes)
+            
+            for _, child in ipairs(locFolder:GetChildren()) do
+                local gui = child:FindFirstChild("LocGui")
+                if gui then
+                    gui.Enabled = getgenv().locationsEspEnabled
+                    if getgenv().locationsEspEnabled then
+                        local dist = math.floor((myPos - child.Position).Magnitude)
+                        local cleanName = string.gsub(child.Name, "Loc_", "")
+                        gui.TextLabel.Text = cleanName .. " [" .. dist .. "m]"
+                    end
+                end
+            end
+
             local itemsFolder = workspace:FindFirstChild("Loot") or workspace:FindFirstChild("Items") or workspace
             for _, descendant in pairs(itemsFolder:GetChildren()) do
                 local nameLower = string.lower(descendant.Name)
@@ -673,7 +784,7 @@ task.spawn(function()
                 if (isLoot and getgenv().itemEspEnabled) or (isMine and getgenv().mineEspEnabled) or (isDrop and getgenv().itemEspEnabled) then
                     local p = descendant:IsA("BasePart") and descendant or descendant:FindFirstChildWhichIsA("BasePart")
                     if p then
-                        local dist = math.floor((lPlr.Character.HumanoidRootPart.Position - p.Position).Magnitude)
+                        local dist = math.floor((myPos - p.Position).Magnitude)
                         if dist <= 500 then 
                             local guiName = isMine and "MineTextGui" or "LootTextGui"; local b = p:FindFirstChild(guiName)
                             if not b then
@@ -695,8 +806,16 @@ task.spawn(function()
                 end
             end
         end
-        task.wait(2.0) 
+        task.wait(1.0)
     end
 end)
 
 for _, v in pairs(workspace:GetDescendants()) do pcall(function() applyLightESP(v) end) end
+
+
+
+
+
+
+
+
