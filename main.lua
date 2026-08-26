@@ -811,11 +811,3 @@ task.spawn(function()
 end)
 
 for _, v in pairs(workspace:GetDescendants()) do pcall(function() applyLightESP(v) end) end
-
-
-
-
-
-
-
-
