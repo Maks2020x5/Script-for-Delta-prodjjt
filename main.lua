@@ -11,8 +11,9 @@ getgenv().thermalButtonEnabled = false
 getgenv().fpsBoostEnabled = false
 getgenv().zoomMultiplier = 2
 getgenv().zoomButtonEnabled = false
-getgenv().aimbotTargetMode = "Head" 
-getgenv().hitboxExpanderEnabled = false
+getgenv().hitboxExpanderEnabled = true
+getgenv().headSizeMultiplier = 3
+getgenv().torsoSizeMultiplier = 2
 local lPlr = game:GetService("Players").LocalPlayer
 local cam = workspace.CurrentCamera
 local runService = game:GetService("RunService")
@@ -35,7 +36,7 @@ if syn and syn.protect_gui then syn.protect_gui(screenGui) end
 screenGui.Parent = game:GetService("CoreGui") or lPlr:WaitForChild("PlayerGui")
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 200, 0, 420) 
+mainFrame.Size = UDim2.new(0, 200, 0, 390) 
 mainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.BorderSizePixel = 0
@@ -46,7 +47,7 @@ mainCorner.CornerRadius = UDim.new(0, 8)
 mainCorner.Parent = mainFrame
 local subFrame = Instance.new("Frame")
 subFrame.Name = "SubFrame"
-subFrame.Size = UDim2.new(0, 190, 0, 215)
+subFrame.Size = UDim2.new(0, 190, 0, 180)
 subFrame.Position = UDim2.new(1, 10, 0, 0)
 subFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 subFrame.BorderSizePixel = 0
@@ -96,29 +97,6 @@ end
 createConfigButton("Предел: ЛЕГИТ (FOV 60 / 150m)", 60, 150, 1)
 createConfigButton("Предел: СРЕДНИЙ (FOV 120 / 400m)", 120, 400, 2)
 createConfigButton("Предел: МАКСИМУМ (FOV 250 / 1000m)", 250, 1000, 3)
-local targetToggleBtn = Instance.new("TextButton")
-targetToggleBtn.Size = UDim2.new(0, 170, 0, 30)
-targetToggleBtn.Font = Enum.Font.SourceSansBold
-targetToggleBtn.TextSize = 11
-targetToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
-targetToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-targetToggleBtn.Text = "ЦЕЛЬ АИМА: ГОЛОВА"
-targetToggleBtn.LayoutOrder = 4
-targetToggleBtn.Parent = subFrame
-local targetToggleCorner = Instance.new("UICorner")
-targetToggleCorner.CornerRadius = UDim.new(0, 4)
-targetToggleCorner.Parent = targetToggleBtn
-targetToggleBtn.MouseButton1Click:Connect(function()
-    if getgenv().aimbotTargetMode == "Head" then
-        getgenv().aimbotTargetMode = "Torso"
-        targetToggleBtn.Text = "ЦЕЛЬ АИМА: ТОРС"
-        targetToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 120, 0)
-    else
-        getgenv().aimbotTargetMode = "Head"
-        targetToggleBtn.Text = "ЦЕЛЬ АИМА: ГОЛОВА"
-        targetToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
-    end
-end)
 local fovToggleBtn = Instance.new("TextButton")
 fovToggleBtn.Size = UDim2.new(0, 170, 0, 30)
 fovToggleBtn.Font = Enum.Font.SourceSansBold
@@ -126,7 +104,7 @@ fovToggleBtn.TextSize = 11
 fovToggleBtn.BackgroundColor3 = Color3.fromRGB(34, 139, 34)
 fovToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 fovToggleBtn.Text = "КРУГ FOV: ПОКАЗАТЬ"
-fovToggleBtn.LayoutOrder = 5
+fovToggleBtn.LayoutOrder = 4
 fovToggleBtn.Parent = subFrame
 local fovToggleCorner = Instance.new("UICorner")
 fovToggleCorner.CornerRadius = UDim.new(0, 4)
@@ -178,9 +156,11 @@ titleBar.Parent = mainFrame
 local titleCorner = Instance.new("UICorner")
 titleCorner.CornerRadius = UDim.new(0, 8)
 titleCorner.Parent = titleBar
+local bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand"}
 local wallCheckCache = {}
 local lastCacheReset = os.clock()
 local targetHealthTracker = {}
+local originalSizes = {}
 local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(0.7, 0, 1, 0)
 titleText.Position = UDim2.new(0.05, 0, 0, 0)
@@ -219,22 +199,8 @@ local function getBestVisibleBone(character)
     if workspace:FindFirstChild("Items") then table.insert(ignoreList, workspace.Items) end
     rayParams.FilterDescendantsInstances = ignoreList
     rayParams.IgnoreWater = true
-    local isR15 = character:FindFirstChild("UpperTorso") ~= nil
-    local bonePriorityOrder = {}
-    if getgenv().aimbotTargetMode == "Head" then
-        if isR15 then
-            bonePriorityOrder = {"Head", "UpperTorso", "LowerTorso", "LeftHand", "RightHand", "LeftLowerArm", "RightLowerArm"}
-        else
-            bonePriorityOrder = {"Head", "Torso", "Left Arm", "Right Arm"}
-        end
-    else
-        if isR15 then
-            bonePriorityOrder = {"UpperTorso", "LowerTorso", "Head", "LeftHand", "RightHand", "LeftLowerArm", "RightLowerArm"}
-        else
-            bonePriorityOrder = {"Torso", "Head", "Left Arm", "Right Arm"}
-        end
-    end
-    for _, boneName in ipairs(bonePriorityOrder) do
+    local currentBones = character:FindFirstChild("UpperTorso") and bonePriority or {"Head", "Torso", "Left Arm", "Right Arm"}
+    for _, boneName in ipairs(currentBones) do
         local part = character:FindFirstChild(boneName)
         if part then
             local origin = myHead.Position
@@ -286,7 +252,7 @@ minimizeBtn.Font = Enum.Font.SourceSansBold
 minimizeBtn.Parent = titleBar
 local contentFrame = Instance.new("Frame")
 contentFrame.Name = "Content"
-contentFrame.Size = UDim2.new(1, 0, 0, 380)
+contentFrame.Size = UDim2.new(1, 0, 0, 350)
 contentFrame.Position = UDim2.new(0, 0, 0, 35)
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
@@ -301,7 +267,7 @@ minimizeBtn.MouseButton1Click:Connect(function()
     if isMinimized then
         contentFrame.Visible = false; subFrame.Visible = false; mainFrame.Size = UDim2.new(0, 200, 0, 35); minimizeBtn.Text = "+"
     else
-        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 200, 0, 420); minimizeBtn.Text = "—"
+        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 200, 0, 390); minimizeBtn.Text = "—"
     end
 end)
 local function makeButtonDraggable(button)
@@ -485,43 +451,6 @@ end
 local function destroyAllLootGuis()
     for _, v in pairs(workspace:GetDescendants()) do if v:IsA("BillboardGui") and (v.Name == "LootTextGui" or v.Name == "MineTextGui") then v:Destroy() end end
 end
-local originalHitboxes = {}
-local function updateHitboxes()
-    if not getgenv().hitboxExpanderEnabled then
-        for part, data in pairs(originalHitboxes) do
-            if part and part.Parent then
-                part.Size = data.Size
-                part.Transparency = data.Transparency
-                part.Color = data.Color
-                part.CanCollide = data.CanCollide
-            end
-        end
-        table.clear(originalHitboxes)
-        return
-    end
-    for _, char in ipairs(getAllCharacters()) do
-        if char and char:FindFirstChildOfClass("Humanoid") and char:FindFirstChildOfClass("Humanoid").Health > 0 then
-            local targetParts = {"Head", "Torso", "UpperTorso", "LowerTorso"}
-            for _, name in ipairs(targetParts) do
-                local part = char:FindFirstChild(name)
-                if part and part:IsA("BasePart") then
-                    if not originalHitboxes[part] then
-                        originalHitboxes[part] = {
-                            Size = part.Size,
-                            Transparency = part.Transparency,
-                            Color = part.Color,
-                            CanCollide = part.CanCollide
-                        }
-                    end
-                    part.Size = originalHitboxes[part].Size * 3
-                    part.Transparency = 0.6
-                    part.Color = Color3.fromRGB(0, 170, 255)
-                    part.CanCollide = false
-                end
-            end
-        end
-    end
-end
 local function createToggle(text, env_val, order)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 180, 0, 26) 
@@ -539,7 +468,6 @@ local function createToggle(text, env_val, order)
             if env_val == "thermalButtonEnabled" then thermalActionButton.Visible = true end
             if env_val == "zoomButtonEnabled" then zoomActionButton.Visible = true end
             if env_val == "fpsBoostEnabled" then toggleFpsBoost(true) end
-            if env_val == "hitboxExpanderEnabled" then updateHitboxes() end
         else
             btn.BackgroundColor3 = Color3.fromRGB(139, 0, 0); btn.Text = text .. ": ВЫКЛ"; btn.TextColor3 = Color3.fromRGB(200, 200, 200)
             if env_val == "aimbotEnabled" then subFrame.Visible = false end
@@ -555,7 +483,6 @@ local function createToggle(text, env_val, order)
                 zoomActionButton.Visible = false; zoomActive = false; extSliderFrame.Visible = false; zoomActionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
             end
             if env_val == "itemEspEnabled" or env_val == "mineEspEnabled" then destroyAllLootGuis() end
-            if env_val == "hitboxExpanderEnabled" then updateHitboxes() end
         end
     end
     updateVisuals(); btn.MouseButton1Click:Connect(function() getgenv()[env_val] = not getgenv()[env_val]; updateVisuals() end)
@@ -565,11 +492,11 @@ createToggle("👤 ESP ИГРОКИ", "espEnabled", 2)
 createToggle("💀 ESP ТРУПЫ", "corpseEspEnabled", 3)
 createToggle("📦 ESP ЛУТ / КЕЙСЫ", "itemEspEnabled", 4)
 createToggle("💥 ESP МИНЫ", "mineEspEnabled", 5)
-createToggle("🎯 РАСШИРИТЬ ХИТБОКСЫ", "hitboxExpanderEnabled", 6)
-createToggle("🟢 ПНВ КНОПКА", "nvgButtonEnabled", 7)
-createToggle("🔥 ТЕПЛОВИЗОР ФУНКЦИЯ", "thermalButtonEnabled", 8)
-createToggle("🔭 ЗУМ ОПТИКА КНОПКА", "zoomButtonEnabled", 9)
-createToggle("⚡ ФПС БУСТ", "fpsBoostEnabled", 10)
+createToggle("🟢 ПНВ КНОПКА", "nvgButtonEnabled", 6)
+createToggle("🔥 ТЕПЛОВИЗОР ФУНКЦИЯ", "thermalButtonEnabled", 7)
+createToggle("🔭 ЗУМ ОПТИКА КНОПКА", "zoomButtonEnabled", 8)
+createToggle("⚡ ФПС БУСТ", "fpsBoostEnabled", 9)
+createToggle("🧲 УВЕЛИЧИТЬ ХИТБОКСЫ", "hitboxExpanderEnabled", 10)
 local slidingZoom = false
 extSliderBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slidingZoom = true end end)
 inputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slidingZoom = false end end)
@@ -645,8 +572,45 @@ end
 workspace.DescendantAdded:Connect(applyLightESP)
 task.spawn(function()
     while true do
+        local success, err = pcall(function()
+            local targets = getAllCharacters()
+            for _, character in ipairs(targets) do
+                if character and character:FindFirstChildOfClass("Humanoid") and character:FindFirstChildOfClass("Humanoid").Health > 0 then
+                    local torsos = {"UpperTorso", "Torso", "LowerTorso"}
+                    local head = character:FindFirstChild("Head")
+                    if head and head:IsA("BasePart") then
+                        if not originalSizes[head] then originalSizes[head] = {Size = head.Size, CanCollide = head.CanCollide} end
+                        if getgenv().hitboxExpanderEnabled then
+                            local orig = originalSizes[head].Size
+                            head.Size = Vector3.new(orig.X * getgenv().headSizeMultiplier, orig.Y * getgenv().headSizeMultiplier, orig.Z * getgenv().headSizeMultiplier)
+                            head.CanCollide = false
+                        else head.Size = originalSizes[head].Size; head.CanCollide = originalSizes[head].CanCollide end
+                    end
+                    for _, torsoName in ipairs(torsos) do
+                        local torso = character:FindFirstChild(torsoName)
+                        if torso and torso:IsA("BasePart") then
+                            if not originalSizes[torso] then originalSizes[torso] = {Size = torso.Size, CanCollide = torso.CanCollide} end
+                            if getgenv().hitboxExpanderEnabled then
+                                local orig = originalSizes[torso].Size
+                                torso.Size = Vector3.new(orig.X * getgenv().torsoSizeMultiplier, orig.Y * getgenv().torsoSizeMultiplier, orig.Z * getgenv().torsoSizeMultiplier)
+                                torso.CanCollide = false
+                            else torso.Size = originalSizes[torso].Size; torso.CanCollide = originalSizes[torso].CanCollide end
+                        end
+                    end
+                end
+            end
+            if not getgenv().hitboxExpanderEnabled then
+                for part, origData in pairs(originalSizes) do
+                    if part and part.Parent then part.Size = origData.Size; part.CanCollide = origData.CanCollide else originalSizes[part] = nil end
+                end
+            end
+        end)
+        task.wait(1.5)
+    end
+end)
+task.spawn(function()
+    while true do
         if lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart") then
-            pcall(updateHitboxes)
             local itemsFolder = workspace:FindFirstChild("Loot") or workspace:FindFirstChild("Items") or workspace
             for _, descendant in pairs(itemsFolder:GetChildren()) do
                 local nameLower = string.lower(descendant.Name)
