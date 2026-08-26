@@ -357,7 +357,7 @@ local function makeButtonDraggable(button)
     button.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then bDragInput = input end end)
     inputService.InputChanged:Connect(function(input)
         if input == bDragInput and bDragging then
-            local delta = input.Position - bDragStart
+            local delta = input.Position - dragStart
             button.Position = UDim2.new(bStartPos.X.Scale, bStartPos.X.Offset + delta.X, bStartPos.Y.Scale, bStartPos.Y.Offset + delta.Y)
         end
     end)
@@ -724,7 +724,7 @@ local function applyLightESP(m)
     
     hum.HealthChanged:Connect(function(nh)
         local oh = targetHealthTracker[m] or nh
-        if nh < oh and getgenv().aimbotEnabled nudge and m:FindFirstChild("Head") then
+        if nh < oh and getgenv().aimbotEnabled and m:FindFirstChild("Head") then
             local screenPos, onScreen = cam:WorldToViewportPoint(m.Head.Position)
             if onScreen and (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)).Magnitude <= getgenv().aimbotFov then playHitSound() end
         end
