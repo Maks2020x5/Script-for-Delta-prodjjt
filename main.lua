@@ -11,6 +11,7 @@ getgenv().thermalButtonEnabled = false
 getgenv().fpsBoostEnabled = false
 getgenv().zoomMultiplier = 2
 getgenv().zoomButtonEnabled = false
+getgenv().aimbotTargetMode = "Head" 
 
 local lPlr = game:GetService("Players").LocalPlayer
 local cam = workspace.CurrentCamera
@@ -51,7 +52,7 @@ mainCorner.Parent = mainFrame
 
 local subFrame = Instance.new("Frame")
 subFrame.Name = "SubFrame"
-subFrame.Size = UDim2.new(0, 190, 0, 180)
+subFrame.Size = UDim2.new(0, 190, 0, 215)
 subFrame.Position = UDim2.new(1, 10, 0, 0)
 subFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 subFrame.BorderSizePixel = 0
@@ -107,6 +108,32 @@ createConfigButton("Предел: ЛЕГИТ (FOV 60 / 150m)", 60, 150, 1)
 createConfigButton("Предел: СРЕДНИЙ (FOV 120 / 400m)", 120, 400, 2)
 createConfigButton("Предел: МАКСИМУМ (FOV 250 / 1000m)", 250, 1000, 3)
 
+local targetToggleBtn = Instance.new("TextButton")
+targetToggleBtn.Size = UDim2.new(0, 170, 0, 30)
+targetToggleBtn.Font = Enum.Font.SourceSansBold
+targetToggleBtn.TextSize = 11
+targetToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+targetToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+targetToggleBtn.Text = "ЦЕЛЬ АИМА: ГОЛОВА"
+targetToggleBtn.LayoutOrder = 4
+targetToggleBtn.Parent = subFrame
+
+local targetToggleCorner = Instance.new("UICorner")
+targetToggleCorner.CornerRadius = UDim.new(0, 4)
+targetToggleCorner.Parent = targetToggleBtn
+
+targetToggleBtn.MouseButton1Click:Connect(function()
+    if getgenv().aimbotTargetMode == "Head" then
+        getgenv().aimbotTargetMode = "Torso"
+        targetToggleBtn.Text = "ЦЕЛЬ АИМА: ТОРС"
+        targetToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 120, 0)
+    else
+        getgenv().aimbotTargetMode = "Head"
+        targetToggleBtn.Text = "ЦЕЛЬ АИМА: ГОЛОВА"
+        targetToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+    end
+end)
+
 local fovToggleBtn = Instance.new("TextButton")
 fovToggleBtn.Size = UDim2.new(0, 170, 0, 30)
 fovToggleBtn.Font = Enum.Font.SourceSansBold
@@ -114,7 +141,7 @@ fovToggleBtn.TextSize = 11
 fovToggleBtn.BackgroundColor3 = Color3.fromRGB(34, 139, 34)
 fovToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 fovToggleBtn.Text = "КРУГ FOV: ПОКАЗАТЬ"
-fovToggleBtn.LayoutOrder = 4
+fovToggleBtn.LayoutOrder = 5
 fovToggleBtn.Parent = subFrame
 
 local fovToggleCorner = Instance.new("UICorner")
@@ -170,12 +197,10 @@ titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 titleBar.BorderSizePixel = 0
 titleBar.Active = true
 titleBar.Parent = mainFrame
-
 local titleCorner = Instance.new("UICorner")
 titleCorner.CornerRadius = UDim.new(0, 8)
 titleCorner.Parent = titleBar
 
-local bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand"}
 local wallCheckCache = {}
 local lastCacheReset = os.clock()
 local targetHealthTracker = {}
@@ -224,9 +249,24 @@ local function getBestVisibleBone(character)
     rayParams.FilterDescendantsInstances = ignoreList
     rayParams.IgnoreWater = true
     
-    local currentBones = character:FindFirstChild("UpperTorso") and bonePriority or {"Head", "Torso", "Left Arm", "Right Arm"}
+    local isR15 = character:FindFirstChild("UpperTorso") ~= nil
     
-    for _, boneName in ipairs(currentBones) do
+    local bonePriorityOrder = {}
+    if getgenv().aimbotTargetMode == "Head" then
+        if isR15 then
+            bonePriorityOrder = {"Head", "UpperTorso", "LowerTorso", "LeftHand", "RightHand", "LeftLowerArm", "RightLowerArm"}
+        else
+            bonePriorityOrder = {"Head", "Torso", "Left Arm", "Right Arm"}
+        end
+    else
+        if isR15 then
+            bonePriorityOrder = {"UpperTorso", "LowerTorso", "Head", "LeftHand", "RightHand", "LeftLowerArm", "RightLowerArm"}
+        else
+            bonePriorityOrder = {"Torso", "Head", "Left Arm", "Right Arm"}
+        end
+    end
+    
+    for _, boneName in ipairs(bonePriorityOrder) do
         local part = character:FindFirstChild(boneName)
         if part then
             local origin = myHead.Position
@@ -241,7 +281,6 @@ local function getBestVisibleBone(character)
     wallCheckCache[character] = false
     return nil
 end
-
 local function getTargetData()
     local bestPart = nil
     local shortestFovDist = math.huge
@@ -319,7 +358,6 @@ local function makeButtonDraggable(button)
         end
     end)
 end
-
 local actionButton = Instance.new("TextButton")
 actionButton.Name = "NvgScreenButton"
 actionButton.Size = UDim2.new(0, 55, 0, 55)
@@ -403,7 +441,6 @@ local nvgActive = false
 local thermalActive = false
 local zoomActive = false
 local origAmbient, origOutdoor, origColorCorr
-
 local function resetLightingEffects()
     if origAmbient then lighting.Ambient = origAmbient end
     if origOutdoor then lighting.OutdoorAmbient = origOutdoor end
