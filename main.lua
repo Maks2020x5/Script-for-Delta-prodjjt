@@ -47,7 +47,7 @@ mainCorner.CornerRadius = UDim.new(0, 8)
 mainCorner.Parent = mainFrame
 local subFrame = Instance.new("Frame")
 subFrame.Name = "SubFrame"
-subFrame.Size = UDim2.new(0, 190, 0, 180)
+subFrame.Size = UDim2.new(0, 190, 0, 215)
 subFrame.Position = UDim2.new(1, 10, 0, 0)
 subFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 subFrame.BorderSizePixel = 0
@@ -119,6 +119,33 @@ fovToggleBtn.MouseButton1Click:Connect(function()
         fovToggleBtn.Text = "КРУГ FOV: СКРЫТЬ"
     end
 end)
+local bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand"}
+local boneToggleBtn = Instance.new("TextButton")
+boneToggleBtn.Size = UDim2.new(0, 170, 0, 30)
+boneToggleBtn.Font = Enum.Font.SourceSansBold
+boneToggleBtn.TextSize = 11
+boneToggleBtn.BackgroundColor3 = Color3.fromRGB(120, 40, 140)
+boneToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+boneToggleBtn.Text = "ПРИОРИТЕТ: ГОЛОВА"
+boneToggleBtn.LayoutOrder = 5
+boneToggleBtn.Parent = subFrame
+local boneToggleCorner = Instance.new("UICorner")
+boneToggleCorner.CornerRadius = UDim.new(0, 4)
+boneToggleCorner.Parent = boneToggleBtn
+local currentTargetMode = "Head"
+boneToggleBtn.MouseButton1Click:Connect(function()
+    if currentTargetMode == "Head" then
+        currentTargetMode = "Torso"
+        boneToggleBtn.Text = "ПРИОРИТЕТ: ТОРС"
+        boneToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 140)
+        bonePriority = {"UpperTorso", "Head", "LeftHand", "RightHand"}
+    else
+        currentTargetMode = "Head"
+        boneToggleBtn.Text = "ПРИОРИТЕТ: ГОЛОВА"
+        boneToggleBtn.BackgroundColor3 = Color3.fromRGB(120, 40, 140)
+        bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand"}
+    end
+end)
 local function getAllCharacters()
     local list = {}
     local currentCharacter = lPlr.Character
@@ -156,7 +183,6 @@ titleBar.Parent = mainFrame
 local titleCorner = Instance.new("UICorner")
 titleCorner.CornerRadius = UDim.new(0, 8)
 titleCorner.Parent = titleBar
-local bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand"}
 local wallCheckCache = {}
 local lastCacheReset = os.clock()
 local targetHealthTracker = {}
@@ -199,7 +225,16 @@ local function getBestVisibleBone(character)
     if workspace:FindFirstChild("Items") then table.insert(ignoreList, workspace.Items) end
     rayParams.FilterDescendantsInstances = ignoreList
     rayParams.IgnoreWater = true
-    local currentBones = character:FindFirstChild("UpperTorso") and bonePriority or {"Head", "Torso", "Left Arm", "Right Arm"}
+    local currentBones = {}
+    if character:FindFirstChild("UpperTorso") then
+        currentBones = bonePriority
+    else
+        if currentTargetMode == "Head" then
+            currentBones = {"Head", "Torso", "Left Arm", "Right Arm"}
+        else
+            currentBones = {"Torso", "Head", "Left Arm", "Right Arm"}
+        end
+    end
     for _, boneName in ipairs(currentBones) do
         local part = character:FindFirstChild(boneName)
         if part then
