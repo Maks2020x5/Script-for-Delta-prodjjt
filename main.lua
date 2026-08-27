@@ -14,6 +14,16 @@ getgenv().zoomButtonEnabled = false
 getgenv().hitboxExpanderEnabled = true
 getgenv().headSizeMultiplier = 3
 getgenv().torsoSizeMultiplier = 2
+getgenv().menuToggleKey = Enum.KeyCode.Insert
+getgenv().panicKey = Enum.KeyCode.P
+getgenv().espRefreshRate = 0.3
+getgenv().hitboxRefreshRate = 1.0
+getgenv().rainbowMenu = false
+getgenv().themeMode = "Dark"
+getgenv().antiLagSystem = true
+getgenv().bulletSpeedValue = 1200
+getgenv().smoothnessFactor = 0.15
+
 local lPlr = game:GetService("Players").LocalPlayer
 local cam = workspace.CurrentCamera
 local runService = game:GetService("RunService")
@@ -21,6 +31,7 @@ local tweenService = game:GetService("TweenService")
 local lighting = game:GetService("Lighting")
 local inputService = game:GetService("UserInputService")
 local soundService = game:GetService("SoundService")
+
 local lastAimTime = os.clock()
 local fovCircle = Drawing.new("Circle")
 fovCircle.Visible = getgenv().showFovCircle
@@ -28,77 +39,89 @@ fovCircle.Thickness = 1.5
 fovCircle.Color = Color3.fromRGB(0, 255, 150)
 fovCircle.Transparency = 0.7
 fovCircle.NumSides = 32
+
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "DeltaProjectMenu_" .. math.random(100, 999)
+screenGui.Name = "DeltaProjectMenu_" .. math.random(10000, 99999)
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 if syn and syn.protect_gui then syn.protect_gui(screenGui) end
 screenGui.Parent = game:GetService("CoreGui") or lPlr:WaitForChild("PlayerGui")
+
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 200, 0, 390) 
+mainFrame.Size = UDim2.new(0, 210, 0, 420) 
 mainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 mainFrame.BorderSizePixel = 0
-mainFrame.Active = false
+mainFrame.Active = true
 mainFrame.Parent = screenGui
+
 local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 8)
+mainCorner.CornerRadius = UDim.new(0, 10)
 mainCorner.Parent = mainFrame
+
 local subFrame = Instance.new("Frame")
 subFrame.Name = "SubFrame"
-subFrame.Size = UDim2.new(0, 190, 0, 215)
+subFrame.Size = UDim2.new(0, 195, 0, 260)
 subFrame.Position = UDim2.new(1, 10, 0, 0)
-subFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+subFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 subFrame.BorderSizePixel = 0
 subFrame.Visible = true
 subFrame.Parent = mainFrame
+
 local subCorner = Instance.new("UICorner")
-subCorner.CornerRadius = UDim.new(0, 8)
+subCorner.CornerRadius = UDim.new(0, 10)
 subCorner.Parent = subFrame
+
 local subTitle = Instance.new("TextLabel")
-subTitle.Size = UDim2.new(1, 0, 0, 30)
+subTitle.Size = UDim2.new(1, 0, 0, 35)
 subTitle.BackgroundTransparency = 1
-subTitle.Text = "ТОНКИЕ НАСТРОЙКИ АИМА"
-subTitle.TextColor3 = Color3.fromRGB(255, 255, 0)
+subTitle.Text = "РАСШИРЕННЫЙ КОМБАТ МЕНЮ"
+subTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
 subTitle.TextSize = 12
 subTitle.Font = Enum.Font.SourceSansBold
 subTitle.Parent = subFrame
+
 local subLayout = Instance.new("UIListLayout")
-subLayout.Padding = UDim.new(0, 5)
+subLayout.Padding = UDim.new(0, 6)
 subLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 subLayout.SortOrder = Enum.SortOrder.LayoutOrder
 subLayout.Parent = subFrame
+
 local subPad = Instance.new("Frame")
-subPad.Size = UDim2.new(1, 0, 0, 15)
+subPad.Size = UDim2.new(1, 0, 0, 10)
 subPad.BackgroundTransparency = 1
 subPad.LayoutOrder = 0
 subPad.Parent = subFrame
+
 local function createConfigButton(text, fovVal, distVal, order)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 170, 0, 30)
+    btn.Size = UDim2.new(0, 180, 0, 32)
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 11
-    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Text = text
     btn.LayoutOrder = order
     btn.Parent = subFrame
+    
     local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 4)
+    c.CornerRadius = UDim.new(0, 5)
     c.Parent = btn
     btn.MouseButton1Click:Connect(function()
         getgenv().aimbotFov = fovVal
         getgenv().aimbotMaxDist = distVal
         btn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-        task.delay(0.2, function() btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45) end)
+        task.delay(0.2, function() btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40) end)
     end)
 end
+
 createConfigButton("Предел: ЛЕГИТ (FOV 60 / 150m)", 60, 150, 1)
 createConfigButton("Предел: СРЕДНИЙ (FOV 120 / 400m)", 120, 400, 2)
 createConfigButton("Предел: МАКСИМУМ (FOV 250 / 1000m)", 250, 1000, 3)
+
 local fovToggleBtn = Instance.new("TextButton")
-fovToggleBtn.Size = UDim2.new(0, 170, 0, 30)
+fovToggleBtn.Size = UDim2.new(0, 180, 0, 32)
 fovToggleBtn.Font = Enum.Font.SourceSansBold
 fovToggleBtn.TextSize = 11
 fovToggleBtn.BackgroundColor3 = Color3.fromRGB(34, 139, 34)
@@ -106,9 +129,11 @@ fovToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 fovToggleBtn.Text = "КРУГ FOV: ПОКАЗАТЬ"
 fovToggleBtn.LayoutOrder = 4
 fovToggleBtn.Parent = subFrame
+
 local fovToggleCorner = Instance.new("UICorner")
-fovToggleCorner.CornerRadius = UDim.new(0, 4)
+fovToggleCorner.CornerRadius = UDim.new(0, 5)
 fovToggleCorner.Parent = fovToggleBtn
+
 fovToggleBtn.MouseButton1Click:Connect(function()
     getgenv().showFovCircle = not getgenv().showFovCircle
     if getgenv().showFovCircle then
@@ -119,9 +144,10 @@ fovToggleBtn.MouseButton1Click:Connect(function()
         fovToggleBtn.Text = "КРУГ FOV: СКРЫТЬ"
     end
 end)
+
 local bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand"}
 local boneToggleBtn = Instance.new("TextButton")
-boneToggleBtn.Size = UDim2.new(0, 170, 0, 30)
+boneToggleBtn.Size = UDim2.new(0, 180, 0, 32)
 boneToggleBtn.Font = Enum.Font.SourceSansBold
 boneToggleBtn.TextSize = 11
 boneToggleBtn.BackgroundColor3 = Color3.fromRGB(120, 40, 140)
@@ -129,9 +155,11 @@ boneToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 boneToggleBtn.Text = "ПРИОРИТЕТ: ГОЛОВА"
 boneToggleBtn.LayoutOrder = 5
 boneToggleBtn.Parent = subFrame
+
 local boneToggleCorner = Instance.new("UICorner")
-boneToggleCorner.CornerRadius = UDim.new(0, 4)
+boneToggleCorner.CornerRadius = UDim.new(0, 5)
 boneToggleCorner.Parent = boneToggleBtn
+
 local currentTargetMode = "Head"
 boneToggleBtn.MouseButton1Click:Connect(function()
     if currentTargetMode == "Head" then
@@ -146,6 +174,32 @@ boneToggleBtn.MouseButton1Click:Connect(function()
         bonePriority = {"Head", "UpperTorso", "LeftHand", "RightHand"}
     end
 end)
+
+local themeToggleBtn = Instance.new("TextButton")
+themeToggleBtn.Size = UDim2.new(0, 180, 0, 32)
+themeToggleBtn.Font = Enum.Font.SourceSansBold
+themeToggleBtn.TextSize = 11
+themeToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+themeToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+themeToggleBtn.Text = "ЦВЕТ ТЕМЫ: СТАНДАРТ"
+themeToggleBtn.LayoutOrder = 6
+themeToggleBtn.Parent = subFrame
+
+Instance.new("UICorner", themeToggleBtn).CornerRadius = UDim.new(0, 5)
+themeToggleBtn.MouseButton1Click:Connect(function()
+    if getgenv().themeMode == "Dark" then
+        getgenv().themeMode = "RGB"
+        getgenv().rainbowMenu = true
+        themeToggleBtn.Text = "ЦВЕТ ТЕМЫ: RGB РЕЙВ"
+    else
+        getgenv().themeMode = "Dark"
+        getgenv().rainbowMenu = false
+        themeToggleBtn.Text = "ЦВЕТ ТЕМЫ: СТАНДАРТ"
+        mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        subFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    end
+end)
+
 local function getAllCharacters()
     local list = {}
     local currentCharacter = lPlr.Character
@@ -165,50 +219,79 @@ local function getAllCharacters()
     end
     return list
 end
+
 local function playHitSound()
     local sound = Instance.new("Sound")
     sound.SoundId = "rbxassetid://9114223193"
-    sound.Volume = 0.4
+    sound.Volume = 0.5
     sound.PlayOnRemove = true
     sound.Parent = soundService
     sound:Destroy()
 end
+
 local titleBar = Instance.new("Frame")
 titleBar.Name = "TitleBar"
-titleBar.Size = UDim2.new(1, 0, 0, 35)
-titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+titleBar.Size = UDim2.new(1, 0, 0, 38)
+titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 titleBar.BorderSizePixel = 0
 titleBar.Active = true
 titleBar.Parent = mainFrame
+
 local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 8)
+titleCorner.CornerRadius = UDim.new(0, 10)
 titleCorner.Parent = titleBar
+
 local wallCheckCache = {}
 local lastCacheReset = os.clock()
 local targetHealthTracker = {}
 local originalSizes = {}
+
 local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(0.7, 0, 1, 0)
-titleText.Position = UDim2.new(0.05, 0, 0, 0)
+titleText.Position = UDim2.new(0.06, 0, 0, 0)
 titleText.BackgroundTransparency = 1
-titleText.Text = "DELTA CHEATS V2"
+titleText.Text = "DELTA PC/MOBILE V3"
 titleText.TextColor3 = Color3.fromRGB(0, 255, 150)
 titleText.TextSize = 13
 titleText.Font = Enum.Font.SourceSansBold
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = titleBar
-local dragging, dragInput, dragStart, startPos
+
+local dragging, dragStart, startPos
 titleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = mainFrame.Position
-        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        
+        local connection
+        connection = input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+                connection:Disconnect()
+            end
+        end)
     end
 end)
-titleBar.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
+
 inputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
         mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+inputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.KeyCode == getgenv().menuToggleKey then
+        screenGui.Enabled = not screenGui.Enabled
+    elseif input.KeyCode == getgenv().panicKey then
+        getgenv().aimbotEnabled = false
+        getgenv().espEnabled = false
+        getgenv().hitboxExpanderEnabled = false
+        getgenv().itemEspEnabled = false
+        getgenv().mineEspEnabled = false
+        fovCircle.Visible = false
     end
 end)
 local function getBestVisibleBone(character)
@@ -250,6 +333,7 @@ local function getBestVisibleBone(character)
     wallCheckCache[character] = false
     return nil
 end
+
 local function getTargetData()
     local bestPart = nil
     local shortestFovDist = math.huge
@@ -276,9 +360,10 @@ local function getTargetData()
     end
     return bestPart, shortestFovDist
 end
+
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
-minimizeBtn.Position = UDim2.new(0.8, 0, 0.08, 0)
+minimizeBtn.Position = UDim2.new(0.82, 0, 0.1, 0)
 minimizeBtn.BackgroundTransparency = 1
 minimizeBtn.Text = "—"
 minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -287,40 +372,53 @@ minimizeBtn.Font = Enum.Font.SourceSansBold
 minimizeBtn.Parent = titleBar
 local contentFrame = Instance.new("Frame")
 contentFrame.Name = "Content"
-contentFrame.Size = UDim2.new(1, 0, 0, 350)
-contentFrame.Position = UDim2.new(0, 0, 0, 35)
+contentFrame.Size = UDim2.new(1, 0, 0, 370)
+contentFrame.Position = UDim2.new(0, 0, 0, 38)
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
+
 local layout = Instance.new("UIListLayout")
 layout.Padding = UDim.new(0, 4)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Parent = contentFrame
+
 local isMinimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
-        contentFrame.Visible = false; subFrame.Visible = false; mainFrame.Size = UDim2.new(0, 200, 0, 35); minimizeBtn.Text = "+"
+        contentFrame.Visible = false; subFrame.Visible = false; mainFrame.Size = UDim2.new(0, 210, 0, 38); minimizeBtn.Text = "+"
     else
-        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 200, 0, 390); minimizeBtn.Text = "—"
+        contentFrame.Visible = true; subFrame.Visible = getgenv().aimbotEnabled; mainFrame.Size = UDim2.new(0, 210, 0, 420); minimizeBtn.Text = "—"
     end
 end)
+
 local function makeButtonDraggable(button)
-    local bDragging, bDragInput, bDragStart, bStartPos
+    local bDragging, bDragStart, bStartPos
     button.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            bDragging = true; bDragStart = input.Position; bStartPos = button.Position
-            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then bDragging = false end end)
+            bDragging = true
+            bDragStart = input.Position
+            bStartPos = button.Position
+            
+            local connection
+            connection = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    bDragging = false
+                    connection:Disconnect()
+                end
+            end)
         end
     end)
-    button.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then bDragInput = input end end)
+    
     inputService.InputChanged:Connect(function(input)
-        if input == bDragInput and bDragging then
+        if bDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - bDragStart
             button.Position = UDim2.new(bStartPos.X.Scale, bStartPos.X.Offset + delta.X, bStartPos.Y.Scale, bStartPos.Y.Offset + delta.Y)
         end
     end)
 end
+
 local actionButton = Instance.new("TextButton")
 actionButton.Name = "NvgScreenButton"
 actionButton.Size = UDim2.new(0, 55, 0, 55)
@@ -338,6 +436,7 @@ actStroke.Color = Color3.fromRGB(0, 255, 0)
 actStroke.Thickness = 2
 actStroke.Parent = actionButton
 makeButtonDraggable(actionButton)
+
 local thermalActionButton = Instance.new("TextButton")
 thermalActionButton.Name = "ThermalScreenButton"
 thermalActionButton.Size = UDim2.new(0, 55, 0, 55)
@@ -372,6 +471,7 @@ zoomStroke.Color = Color3.fromRGB(0, 220, 255)
 zoomStroke.Thickness = 2
 zoomStroke.Parent = zoomActionButton
 makeButtonDraggable(zoomActionButton)
+
 local extSliderFrame = Instance.new("Frame")
 extSliderFrame.Name = "ExtSliderFrame"
 extSliderFrame.Size = UDim2.new(0, 130, 0, 14)
@@ -380,12 +480,14 @@ extSliderFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 extSliderFrame.Visible = false
 extSliderFrame.Parent = zoomActionButton
 Instance.new("UICorner", extSliderFrame).CornerRadius = UDim.new(0, 4)
+
 local extSliderBtn = Instance.new("TextButton")
 extSliderBtn.Size = UDim2.new(0, 14, 1, 0)
 extSliderBtn.BackgroundColor3 = Color3.fromRGB(0, 220, 255)
 extSliderBtn.Text = ""
 extSliderBtn.Parent = extSliderFrame
 Instance.new("UICorner", extSliderBtn).CornerRadius = UDim.new(0, 4)
+
 local extSliderLabel = Instance.new("TextLabel")
 extSliderLabel.Size = UDim2.new(0, 130, 0, 16)
 extSliderLabel.Position = UDim2.new(0, 0, 0, -18)
@@ -395,10 +497,12 @@ extSliderLabel.TextSize = 11
 extSliderLabel.TextColor3 = Color3.fromRGB(0, 220, 255)
 extSliderLabel.Text = "ЗУМ: 2x"
 extSliderLabel.Parent = extSliderFrame
+
 local nvgActive = false
 local thermalActive = false
 local zoomActive = false
 local origAmbient, origOutdoor, origColorCorr
+
 local function resetLightingEffects()
     if origAmbient then lighting.Ambient = origAmbient end
     if origOutdoor then lighting.OutdoorAmbient = origOutdoor end
@@ -410,12 +514,14 @@ local function resetLightingEffects()
         cc.Saturation = origColorCorr.Saturation
     end
 end
+
 local function turnOffNvg()
     nvgActive = false
     actionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     actionButton.TextColor3 = Color3.fromRGB(0, 255, 0)
     if not thermalActive then resetLightingEffects() end
 end
+
 actionButton.MouseButton1Click:Connect(function()
     nvgActive = not nvgActive
     if nvgActive then
@@ -457,6 +563,7 @@ thermalActionButton.MouseButton1Click:Connect(function()
         resetLightingEffects()
     end
 end)
+
 zoomActionButton.MouseButton1Click:Connect(function()
     zoomActive = not zoomActive
     if zoomActive then
@@ -469,6 +576,7 @@ zoomActionButton.MouseButton1Click:Connect(function()
         extSliderFrame.Visible = false
     end
 end)
+
 local backupEffects = {}; local origShadows = lighting.GlobalShadows
 local function toggleFpsBoost(enable)
     lighting.GlobalShadows = not enable
@@ -483,18 +591,21 @@ local function toggleFpsBoost(enable)
         for _, data in pairs(backupEffects) do if data.effect then data.effect.Parent = data.parent end end; table.clear(backupEffects)
     end
 end
+
 local function destroyAllLootGuis()
     for _, v in pairs(workspace:GetDescendants()) do if v:IsA("BillboardGui") and (v.Name == "LootTextGui" or v.Name == "MineTextGui") then v:Destroy() end end
 end
+
 local function createToggle(text, env_val, order)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 180, 0, 26) 
+    btn.Size = UDim2.new(0, 190, 0, 28) 
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 12
     btn.BorderSizePixel = 0
     btn.LayoutOrder = order
     btn.Parent = contentFrame
     local btnCorner = Instance.new("UICorner"); btnCorner.CornerRadius = UDim.new(0, 5); btnCorner.Parent = btn
+    
     local function updateVisuals()
         if getgenv()[env_val] then
             btn.BackgroundColor3 = Color3.fromRGB(34, 139, 34); btn.Text = text .. ": ВКЛ"; btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -522,6 +633,7 @@ local function createToggle(text, env_val, order)
     end
     updateVisuals(); btn.MouseButton1Click:Connect(function() getgenv()[env_val] = not getgenv()[env_val]; updateVisuals() end)
 end
+
 createToggle("🎯 АИМБОТ", "aimbotEnabled", 1)
 createToggle("👤 ESP ИГРОКИ", "espEnabled", 2)
 createToggle("💀 ESP ТРУПЫ", "corpseEspEnabled", 3)
@@ -532,20 +644,41 @@ createToggle("🔥 ТЕПЛОВИЗОР ФУНКЦИЯ", "thermalButtonEnabled",
 createToggle("🔭 ЗУМ ОПТИКА КНОПКА", "zoomButtonEnabled", 8)
 createToggle("⚡ ФПС БУСТ", "fpsBoostEnabled", 9)
 createToggle("🧲 УВЕЛИЧИТЬ ХИТБОКСЫ", "hitboxExpanderEnabled", 10)
+
 local slidingZoom = false
-extSliderBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slidingZoom = true end end)
-inputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then slidingZoom = false end end)
+extSliderBtn.InputBegan:Connect(function(input) 
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then 
+        slidingZoom = true 
+    end 
+end)
+
+inputService.InputEnded:Connect(function(input) 
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then 
+        slidingZoom = false 
+    end 
+end)
+
 inputService.InputChanged:Connect(function(input)
     if slidingZoom and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local mousePos = input.Position.X; local frameLeft = extSliderFrame.AbsolutePosition.X; local frameWidth = extSliderFrame.AbsoluteSize.X
+        local mousePos = input.Position.X
+        local frameLeft = extSliderFrame.AbsolutePosition.X
+        local frameWidth = extSliderFrame.AbsoluteSize.X
         local percentage = math.clamp((mousePos - frameLeft) / frameWidth, 0, 1)
+        
         extSliderBtn.Position = UDim2.new(percentage * (1 - 14/frameWidth), 0, 0, 0)
         local calculatedZoom = math.floor(2 + (percentage * 14))
         getgenv().zoomMultiplier = calculatedZoom
         extSliderLabel.Text = "ЗУМ: " .. tostring(calculatedZoom) .. "x"
     end
 end)
+
 runService.RenderStepped:Connect(function()
+    if getgenv().rainbowMenu then
+        local hue = (os.clock() % 5) / 5
+        local color = Color3.fromHSV(hue, 1, 1)
+        mainFrame.BackgroundColor3 = color
+        subFrame.BackgroundColor3 = color
+    end
     local targetMultiplier = zoomActive and getgenv().zoomMultiplier or 1
     cam.FieldOfView = cam.FieldOfView + ((70 / targetMultiplier) - cam.FieldOfView) * 0.2
     fovCircle.Visible = getgenv().showFovCircle and getgenv().aimbotEnabled
@@ -558,7 +691,7 @@ runService.RenderStepped:Connect(function()
             local myHrp = lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart")
             local finalPos = targetPart.Position
             if enemyHrp and myHrp then 
-                local bulletSpeed = 1200 
+                local bulletSpeed = getgenv().bulletSpeedValue 
                 local distance = (myHrp.Position - targetPart.Position).Magnitude
                 local travelTime = distance / bulletSpeed
                 local movePrediction = enemyHrp.Velocity * (travelTime * 0.7)
@@ -566,10 +699,11 @@ runService.RenderStepped:Connect(function()
                 finalPos = targetPart.Position + movePrediction + gravityCorrection
             end
             local fovRatio = 1 - (fovDist / getgenv().aimbotFov)
-            cam.CFrame = cam.CFrame:Lerp(CFrame.new(cam.CFrame.Position, finalPos), 0.08 + (0.22 * fovRatio))
+            cam.CFrame = cam.CFrame:Lerp(CFrame.new(cam.CFrame.Position, finalPos), getgenv().smoothnessFactor + (0.22 * fovRatio))
         end
     end
 end)
+
 local function applyLightESP(m)
     if not m or not m.Parent or not m:IsA("Model") or not m:FindFirstChildOfClass("Humanoid") or not m:FindFirstChild("HumanoidRootPart") or m.Name == lPlr.Name then return end
     local hrp, hum = m.HumanoidRootPart, m:FindFirstChildOfClass("Humanoid"); targetHealthTracker[m] = hum.Health
@@ -600,11 +734,13 @@ local function applyLightESP(m)
                     hl.OutlineColor, txt.TextColor3 = c, c; txt.Text = base .. " " .. tostring(d) .. "m" .. (isDead and "" or " [" .. math.floor(hum.Health) .. " HP]"); txt.Visible = true
                 else txt.Visible = false end
             else txt.Visible = false end
-            task.wait(0.4)
+            task.wait(getgenv().espRefreshRate)
         end
     end)
 end
+
 workspace.DescendantAdded:Connect(applyLightESP)
+
 task.spawn(function()
     while true do
         local success, err = pcall(function()
@@ -616,8 +752,7 @@ task.spawn(function()
                     if head and head:IsA("BasePart") then
                         if not originalSizes[head] then originalSizes[head] = {Size = head.Size, CanCollide = head.CanCollide} end
                         if getgenv().hitboxExpanderEnabled then
-                            local orig = originalSizes[head].Size
-                            head.Size = Vector3.new(orig.X * getgenv().headSizeMultiplier, orig.Y * getgenv().headSizeMultiplier, orig.Z * getgenv().headSizeMultiplier)
+                            head.Size = Vector3.new(originalSizes[head].Size.X * getgenv().headSizeMultiplier, originalSizes[head].Size.Y * getgenv().headSizeMultiplier, originalSizes[head].Size.Z * getgenv().headSizeMultiplier)
                             head.CanCollide = false
                         else head.Size = originalSizes[head].Size; head.CanCollide = originalSizes[head].CanCollide end
                     end
@@ -626,23 +761,23 @@ task.spawn(function()
                         if torso and torso:IsA("BasePart") then
                             if not originalSizes[torso] then originalSizes[torso] = {Size = torso.Size, CanCollide = torso.CanCollide} end
                             if getgenv().hitboxExpanderEnabled then
-                                local orig = originalSizes[torso].Size
-                                torso.Size = Vector3.new(orig.X * getgenv().torsoSizeMultiplier, orig.Y * getgenv().torsoSizeMultiplier, orig.Z * getgenv().torsoSizeMultiplier)
+                                torso.Size = Vector3.new(originalSizes[torso].Size.X * getgenv().torsoSizeMultiplier, originalSizes[torso].Size.Y * getgenv().torsoSizeMultiplier, originalSizes[torso].Size.Z * getgenv().torsoSizeMultiplier)
                                 torso.CanCollide = false
                             else torso.Size = originalSizes[torso].Size; torso.CanCollide = originalSizes[torso].CanCollide end
                         end
                     end
                 end
             end
-            if not getgenv().hitboxExpanderEnabled then
+            if not getgenv().hitboxExpanderEnabled and getgenv().antiLagSystem then
                 for part, origData in pairs(originalSizes) do
                     if part and part.Parent then part.Size = origData.Size; part.CanCollide = origData.CanCollide else originalSizes[part] = nil end
                 end
             end
         end)
-        task.wait(1.5)
+        task.wait(getgenv().hitboxRefreshRate)
     end
 end)
+
 task.spawn(function()
     while true do
         if lPlr.Character and lPlr.Character:FindFirstChild("HumanoidRootPart") then
@@ -680,4 +815,5 @@ task.spawn(function()
         task.wait(2.0) 
     end
 end)
+
 for _, v in pairs(workspace:GetDescendants()) do pcall(function() applyLightESP(v) end) end
